@@ -1,0 +1,6 @@
+packages:
+  - "packages/*"
+  - "examples/*"
+
+# pnpm runs scripts with this Node (matches "volta.node" in package.json)
+useNodeVersion: 24.22.3
