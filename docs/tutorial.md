@@ -1,11 +1,11 @@
-# チュートリアル：Seam で Todo アプリを作る
+# Tutorial: build a todo app with Seam
 
-このチュートリアルでは、Todo アプリを作りながら、Seam の機能を**使う順番どおり**に覚えます。
-Seam では「まず HTML で作り、足りないときだけ JS を足す」のが基本です。
+Build a todo app and learn Seam's features **in the order you would reach for them**.
+The basic idea in Seam: build with HTML first, and add JavaScript only where it is missing.
 
-必要なもの：Node.js 22.12 以上
+You need Node.js 22.12 or later.
 
-## 0. プロジェクトを作る
+## 0. Create the project
 
 ```sh
 npm create seam@latest my-todos
@@ -14,34 +14,34 @@ npm install
 npm run dev
 ```
 
-> まだ npm に公開していないので、今はこのリポジトリで `pnpm test:create` を実行すると、同じ流れを試せます。
+> Seam is not published to npm yet. For now, `pnpm test:create` in this repository runs the same flow.
 
-できるフォルダはこれだけです。`vite.config.ts` はありません（`seam` コマンドの初期設定で動きます）。
+This is all you get. There is no `vite.config.ts`; the `seam` command's defaults are enough.
 
 ```
 app/
-  routes/_layout.tsx    ページ全体の枠（<html>）
-  routes/index.tsx      /（Todo の一覧）
-  routes/about.tsx      /about
-  actions/todos.ts      'use server'（書きこみ）
-  islands/DoneToggle.tsx 'use client'（島）
-  server/db.server.ts   サーバー専用（データベースの代わり）
+  routes/_layout.tsx      the frame of every page (<html>)
+  routes/index.tsx        / (the todo list)
+  routes/about.tsx        /about
+  actions/todos.ts        'use server' (writes)
+  islands/DoneToggle.tsx  'use client' (an island)
+  server/db.server.ts     server only (stands in for a database)
 ```
 
 ---
 
-## 1. データを見せる：ページと loader
+## 1. Show data: pages and loaders
 
-`app/routes/` にファイルを置くと、そのまま URL になります。
+Put a file in `app/routes/` and it becomes a URL.
 
-| ファイル | URL |
+| File | URL |
 |---|---|
 | `index.tsx` | `/` |
 | `about.tsx` | `/about` |
 | `todos/[id].tsx` | `/todos/:id` |
-| `_layout.tsx` | そのフォルダのページを包む枠 |
+| `_layout.tsx` | A frame around the pages in its folder |
 
-データは `loader` で読みます。`loader` は GET のときにサーバーで動き、戻り値がコンポーネントの `data` になります。
+Read data in a `loader`. It runs on the server for GET requests, and what it returns becomes the component's `data`.
 
 ```tsx
 export async function loader() {
@@ -53,11 +53,11 @@ export default function Todos({ data }: PageProps<typeof loader>) {
 }
 ```
 
-- 入れ子のレイアウトの loader は、**同時に**動きます。
-- キャッシュは `Cache-Control` で決めます。何も書かないと `private, no-cache`（安全な初期値）になります。
-- このページは、ブラウザに React を送りません。
+- Loaders of nested layouts run **at the same time**.
+- `Cache-Control` decides caching. Without it you get `private, no-cache` (a safe default).
+- This page sends no React to the browser.
 
-## 2. データを書きかえる：`'use server'` と `<form>`
+## 2. Change data: `'use server'` and `<form>`
 
 ```ts
 // app/actions/todos.ts
@@ -76,12 +76,12 @@ export async function addTodo(formData: FormData) {
 </form>
 ```
 
-これだけで、次のように動きます。
+That is all it takes:
 
-1. JS なし：`POST /_action/<id>` → **303** → `GET /` → loader がもう一度動いて、新しい Todo が出る
-2. JS あり：同じリクエストを fetch で送り、`<main>` だけを差しかえる（ページ全体を読み直さない）
+1. Without JavaScript: `POST /_action/<id>` → **303** → `GET /` → the loader runs again and shows the new todo
+2. With JavaScript: the same request goes through fetch and only `<main>` is swapped (no full page reload)
 
-エラーを返したときは、`getActionResult(addTodo)` で、次のページで受け取れます。
+When the action returns an error, read it on the next page with `getActionResult(addTodo)`:
 
 ```tsx
 export async function loader() {
@@ -89,11 +89,11 @@ export async function loader() {
 }
 ```
 
-`.seam/actions.gen.ts` を開くと、どの関数がどの URL になったかが分かります。
+Open `.seam/actions.gen.ts` to see which function became which URL.
 
-## 3. 動く部分だけ JS：アイランド
+## 3. JavaScript only where it moves: islands
 
-入力のたびに画面が変わる部分だけを、`'use client'` のファイルにします。
+Put only the parts that change on every interaction into `'use client'` files.
 
 ```tsx
 // app/islands/DoneToggle.tsx
@@ -112,15 +112,15 @@ export function DoneToggle({ id, done }: { id: string; done: boolean }) {
 }
 ```
 
-- **島が知っているのは props だけ**です。props は JSON にできる値にしてください。
-- 島の中の `<form>` も、JS なしで動きます（React の `useActionState` と Seam が連携します）。
-- 島が1つでもあるページだけが React を読みこみます。
+- **Islands know only their props.** Props must be JSON values.
+- A `<form>` inside an island works without JavaScript too (React's `useActionState` and Seam work together).
+- Only pages with at least one island load React.
 
-島どうしで状態を共有したいときは `createStore()`、ページを移動しても島を残したいときは `export const persist = true` を使います（`seam/client`）。
+To share state between islands, use `createStore()`. To keep an island alive across navigations, use `export const persist = true` (both from `seam/client`).
 
-## 4. ページの一部だけキャッシュする：ビュー
+## 4. Cache part of a page: views
 
-ページの中に「みんなに同じ部分」と「ユーザーごとの部分」があるときは、その部分を**ビュー**にします。ビューは自分の URL と Cache-Control を持つ、ページのかけらです。
+When a page mixes "the same for everyone" with "different per user", make those parts **views**. A view is a fragment of a page with its own URL and its own Cache-Control.
 
 ```tsx
 // app/views/stats.tsx → GET /_v/stats
@@ -133,15 +133,15 @@ export default function Stats({ data }: ViewProps<typeof loader>) {
 ```
 
 ```tsx
-<Include src={`/_v/stats?v=${version}`} />                      {/* サーバーで組みこむ */}
-<Include src="/_v/me" client fallback={<span>…</span>} />     {/* ブラウザで読む */}
+<Include src={`/_v/stats?v=${version}`} />                      {/* assembled on the server */}
+<Include src="/_v/me" client fallback={<span>…</span>} />     {/* loaded by the browser */}
 ```
 
-- サーバーで組みこむと、ビューの Cache-Control がページに合成されます（一番きびしいものが勝つ）。
-- ユーザーごとの部分を `client` にすると、ページは CDN にキャッシュできるまま（`public`）です。
-- キャッシュを消すためのタグはありません。データが変わったら、URL（`?v=...`）を変えます。
+- Assembled on the server, the view's Cache-Control is merged into the page's (the strictest wins).
+- Make per-user parts `client`, and the page stays cacheable on a CDN (`public`).
+- There are no cache tags. When data changes, change the URL (`?v=...`).
 
-## 5. 島からデータを読む：型付き API
+## 5. Read data from an island: the typed API
 
 ```ts
 // app/api/todos.api.ts
@@ -155,48 +155,48 @@ export const searchTodos = get("/api/todos", {
 ```
 
 ```tsx
-// 島の中：GET /api/todos?q=... を fetch するだけ。戻り値の型は handler から決まる
+// In an island: just fetches GET /api/todos?q=...; the return type comes from the handler
 const results = await searchTodos({ query: { q } });
 ```
 
-## 6. 島の中にサーバーの UI を入れる：RSC（オプション）
+## 6. Put server UI inside an island: RSC (optional)
 
-`vite.config.ts` で `seam({ rsc: true })` にすると、ビューを RSC のデータとしても取れます。
+With `seam({ rsc: true })` in `vite.config.ts`, views can also be fetched as RSC data.
 
 ```tsx
-// ビュー（サーバーコンポーネント）：穴をあける
+// The view (a Server Component) leaves a hole
 <Slot name="actions" props={{ id }} />
 
-// 島：サーバーの UI を取ってきて、穴に自分の部品を入れる
+// The island fetches the server UI and fills the hole with its own component
 <RscView src={`/_v/todos/${id}/card.rsc`} slots={{ actions: MyButtons }} />
 ```
 
-最初の HTML からカードが表示され、ブラウザはもう一度取得せずにハイドレーションします。
+The card is in the first HTML, and the browser hydrates it without fetching again.
 
 ---
 
-## どれを使うか迷ったら
+## When in doubt
 
-上から順に考えて、足りないときだけ下に進みます。
+Go down this list and move on only when the current step is not enough.
 
-| やりたいこと | 使うもの | 送る JS |
+| You want to | Use | JavaScript sent |
 |---|---|---|
-| データを見せる | ページ + `loader` | なし |
-| データを書きかえる | `<form action={fn}>` + `'use server'` | なし（あれば上乗せ） |
-| 入力のたびに画面が変わる | 島（`'use client'`） | React + その部品 |
-| ページの一部だけキャッシュしたい | ビュー + `<Include>` | なし |
-| ユーザーごとの部分があるが、ページは CDN に置きたい | `<Include client>` | 少し |
-| 島からデータを読む | 型付き API（`*.api.ts`） | fetch だけ |
-| 島の中にサーバーの UI を入れたい | RSC（`<RscView>` + `<Slot>`） | +7KB |
+| Show data | A page + `loader` | None |
+| Change data | `<form action={fn}>` + `'use server'` | None (enhanced when available) |
+| React to every keystroke | An island (`'use client'`) | React + the component |
+| Cache part of a page | A view + `<Include>` | None |
+| Keep the page on a CDN despite per-user parts | `<Include client>` | A little |
+| Read data from an island | The typed API (`*.api.ts`) | Just fetch |
+| Put server UI inside an island | RSC (`<RscView>` + `<Slot>`) | +7 KB |
 
-## 本番で動かす
+## Running in production
 
 ```sh
 npm run build
-npm start          # NODE_ENV=production で起動する
+npm start          # starts with NODE_ENV=production
 ```
 
-ほかの場所で動かすときは、`vite.config.ts` を作ってアダプターを選びます。
+To run somewhere else, add a `vite.config.ts` and choose an adapter:
 
 ```ts
 import { defineConfig } from "vite";
@@ -204,9 +204,9 @@ import seam from "seam/vite";
 export default defineConfig({ plugins: [seam({ adapter: "bun" })] }); // "node" | "bun" | "deno" | "cloudflare"
 ```
 
-| adapter | 起動のしかた |
+| adapter | How to run it |
 |---|---|
-| `node`（初期値） | `npm start` |
+| `node` (default) | `npm start` |
 | `bun` | `NODE_ENV=production bun dist/server/server.js` |
 | `deno` | `NODE_ENV=production deno run -A dist/server/server.js` |
-| `cloudflare` | wrangler（`main = dist/server/server.js`、`assets = dist/client`、`nodejs_compat`） |
+| `cloudflare` | wrangler (`main = dist/server/server.js`, `assets = dist/client`, `nodejs_compat`) |

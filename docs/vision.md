@@ -1,120 +1,120 @@
-# Seam が目指すもの
+# What Seam is aiming for
 
-> **ページはただの HTML。React は「動く部分」にだけ、その部分の props と一緒に届ける。**
-> 境界はなくさない。**URL として見えるようにして、越えるのを楽にする。**
+> **Pages are plain HTML. React only ships for the parts that move, together with their props.**
+> Keep the boundary. **Make it visible as URLs, and make it easy to cross.**
 
-Seam は「縫い目」という意味です。サーバーとクライアントの境界を、見える形のまま、きれいにつなぎます。
+A seam is where two pieces of fabric are joined. Seam joins server and client while keeping the join visible.
 
-最初のプロンプトは [original-prompt.md](original-prompt.md) にあります。このファイルは、そこから会話で決めたことをまとめた「今の設計」です。
+The prompt the project started from is in [original-prompt.md](original-prompt.md). This document is the current design that came out of it.
 
 ---
 
-## 1. なぜ作るのか
+## 1. Why build it
 
-Next.js には、Next.js だけの知識が多すぎます。
+Next.js asks for too much Next.js-only knowledge:
 
-- `'use client'` / `'use server'` の境界、Server Actions、RSC 独自の仕組み
-- 何度も変わってきたキャッシュ（暗黙のキャッシュ、`revalidatePath` / `revalidateTag`、`'use cache'`、`cacheLife`、`cacheTag` など）
-- コンパイラの変換が多く、書いたコードと動くコードがちがう
+- the `'use client'` / `'use server'` boundary, Server Actions, RSC-specific mechanisms
+- caching that keeps changing (implicit caching, `revalidatePath` / `revalidateTag`, `'use cache'`, `cacheLife`, `cacheTag`, …)
+- so many compiler transforms that the code you write is not the code that runs
 
-React Router v7 は、loader / action、JS なしのフォーム、Web 標準の Request / Response、入れ子ルート、アダプターなど、良い部分をすでに持っています。**Seam がちがうのは、ページを HTML として扱い、動く部分にだけ JS を送るところ**です。React Router は、ハイドレーションしたあとアプリ全体が SPA として動き、ページの部品の JS を基本的に全部送ります。
+React Router v7 already has many good parts: loaders and actions, forms that work without JavaScript, web-standard Request / Response, nested routes, adapters. **Seam differs by treating pages as HTML and sending JavaScript only for the parts that move.** After hydration, React Router runs the whole app as a SPA and basically ships the JavaScript of every page component.
 
-## 2. 5つの中心
+## 2. The five core ideas
 
-1. **ブラウザに送る JS を減らす**：HTML の差しかえとアイランドで、動く部分だけ JS を送る
-2. **RSC をデータとして扱う**：RSC を「取得・キャッシュ・表示できるデータ」として扱い、slot で組み立てる（オプション）
-3. **書きこみは `'use server'`**：route の action は持たない。`'use server'` は「決まった URL への普通の POST」にする
-4. **コアは小さく、API は少なく**：`clientLoader`、`useFetcher`、`shouldRevalidate` に当たるものは作らない
-5. **型付き API**：GET だけ。型は関数ごとに閉じる（Hono RPC の重さとメソッドチェーンを避ける）
+1. **Send less JavaScript**: HTML swaps and islands; only moving parts get JavaScript
+2. **RSC as data**: fetch, cache and display RSC as data, compose it with slots (optional)
+3. **Writes are `'use server'`**: no route actions. A `'use server'` function is a plain POST to a fixed URL
+4. **A small core, a small API**: nothing like `clientLoader`, `useFetcher` or `shouldRevalidate`
+5. **A typed API**: GET only, with types that stay per function (avoiding the weight and the method chains of Hono RPC)
 
-## 3. 設計の原則
+## 3. Design principles
 
-1. **ページは HTML。JS はアイランドの分だけ**
-2. **境界は URL**：読みこみ・書きこみ・かけら・RSC・API が、それぞれ決まった URL を持つ（下の表）
-3. **読むのは GET、書くのは POST → 303 → GET**：書いたあとは loader が全部動きなおす。`revalidate` 系の API はない
-4. **アイランドが知っているのは props だけ**
-5. **キャッシュは HTTP だけ**：ページの一部をキャッシュしたいなら、その部分を別の URL（ビュー）にする
-6. **変換は数えられるだけ**：変換後の姿を `.seam/*.gen.ts` で見せる
-7. **loader と入れ子ルートは React Router の考え方を借りる**：新しく発明しない
+1. **Pages are HTML. JavaScript only for islands**
+2. **The boundary is a URL**: reads, writes, fragments, RSC and the API each have a fixed URL (table below)
+3. **Read with GET; write with POST → 303 → GET**: after a write every loader runs again. There is no `revalidate` API
+4. **Islands know only their props**
+5. **Caching is HTTP only**: to cache part of a page differently, give that part its own URL (a view)
+6. **Transforms you can count**: their output is visible in `.seam/*.gen.ts`
+7. **Borrow loaders and nested routes from React Router**: do not reinvent them
 
-## 4. 境界の一覧（全部 URL で見える）
+## 4. Every boundary is a visible URL
 
-| 何をする | URL | 中身 |
+| What | URL | What happens |
 |---|---|---|
-| ページを見る | `GET /invoices/1` | 入れ子の loader を並行して実行し、HTML をストリーミングする |
-| 書きこむ | `POST /_action/<id>` | `'use server'` の関数。JS なしなら 303、JS からなら JSON |
-| ページの一部（ビュー） | `GET /_v/...` | HTML のかけら。自分の Cache-Control を持つ |
-| ビューを RSC で | `GET /_v/....rsc` | 同じビューを Flight で返す（`rsc: true` のとき） |
-| 型付き API | `GET /api/...` | JSON。Standard Schema でクエリを検証する |
+| Show a page | `GET /invoices/1` | Nested loaders run in parallel; HTML streams |
+| Write | `POST /_action/<id>` | A `'use server'` function. 303 without JavaScript, JSON from JavaScript |
+| Part of a page (a view) | `GET /_v/...` | An HTML fragment with its own Cache-Control |
+| A view as RSC | `GET /_v/....rsc` | The same view as Flight (with `rsc: true`) |
+| Typed API | `GET /api/...` | JSON; the query is validated with a Standard Schema |
 
-## 5. 画面の重さの3段階
+## 5. Three levels of weight
 
-| 段階 | 動くもの | 送る JS | 向いている画面 |
+| Level | What moves | JavaScript sent | Good for |
 |---|---|---|---|
-| ① HTML | `<form>` とリンク | ナビゲーション用スクリプト（約 3KB） | 一覧、詳細、設定、記事 |
-| ② アイランド | `'use client'` の部品 | React と、その部品 | ボタン、検索、グラフ |
-| ③ アプリ領域 | 大きな島 + `<RscView>` | ②に加えて Flight を読むしくみ（約 7KB） | ダッシュボード、管理画面 |
+| ① HTML | `<form>` and links | The navigation script (about 3 KB) | Lists, details, settings, articles |
+| ② Islands | `'use client'` components | React plus those components | Buttons, search, charts |
+| ③ App regions | A large island + `<RscView>` | ② plus the Flight decoder (about 7 KB) | Dashboards, admin screens |
 
-**ページは①から始めて、必要になった部分だけ②、③に上げます。**
+**Start every page at ①, and move only the parts that need it to ② or ③.**
 
-## 6. やらないこと
+## 6. Non-goals
 
-1. フレームワーク独自のデータキャッシュ（`'use cache'`、fetch の自動メモ化）
-2. キャッシュを消すためのタグ（`revalidatePath` / `revalidateTag` / `cacheTag`）。データが変わったら URL を変える
-3. クライアントルーターのキャッシュ（ブラウザの HTTP キャッシュを使う）
-4. React の木全体を持つ SPA ルーター（HTML を差しかえる小さなナビゲーション用スクリプトは持つ）
-5. route の `action`（書きこみは `'use server'` だけ）
-6. `'use server'` での読みこみ（読みこみは GET）
-7. 関数の中に書く `'use server'`（クロージャの暗号化）
-8. `clientLoader` / `useFetcher` / `shouldRevalidate` / `useMatches` / `meta` export に当たるもの
-9. アプリ全体の型を1つにつなぐ RPC
-10. ルートの書き方を2通り持つこと（ファイルベースだけ）
-11. Preact などへの切りかえ（React 標準を守る）
-12. CDN ごとのパージ API
-13. 画像・フォントの最適化
+1. A framework-owned data cache (`'use cache'`, automatic fetch memoization)
+2. Tags for cache invalidation (`revalidatePath` / `revalidateTag` / `cacheTag`). When data changes, change the URL
+3. A client router cache (the browser's HTTP cache does this)
+4. A SPA router that owns the whole React tree (a small navigation script that swaps HTML is fine)
+5. Route `action`s (writes are `'use server'` only)
+6. Reads through `'use server'` (reads are GETs)
+7. `'use server'` inside functions (closure encryption)
+8. Equivalents of `clientLoader` / `useFetcher` / `shouldRevalidate` / `useMatches` / a `meta` export
+9. RPC that ties the whole app into one type
+10. Two ways to define routes (file-based only)
+11. Switching to Preact or similar (stay with standard React)
+12. CDN-specific purge APIs
+13. Image and font optimization
 
-## 7. 弱点への対策
+## 7. Answers to known weak spots
 
-| 弱点 | 対策 |
+| Weak spot | Answer |
 |---|---|
-| Hono：フォルダ構成がバラバラになる | ファイル規約（`routes/` `views/` `actions/` `islands/` `api/` `*.server.ts`） |
-| Hono：RPC の型が重い、メソッドチェーンが必要 | 型付き API は関数ごとに型を閉じる。チェーンなし |
-| Hono：ランタイムごとの差 | 同じアプリを Node / Bun / Deno / Workers で動かす確認を、テストとして持つ |
-| 島どうしで状態を共有しにくい | `createStore()` |
-| ページ移動で状態が消える | `persist` の島は消さずに移す。`useNav()` で URL の変化を知る |
-| アプリっぽい画面に向かない | ③アプリ領域（大きな島 + RSC） |
-| どこを島にするか迷う | 判断の順番を決めておく（[tutorial.md](tutorial.md)） |
-| かけら方式は通信が多い、サーバーの負担が増える | GET なので CDN・ETag（304）・ビュー用キャッシュが効く |
-| 更新の流れが追いにくい | 1回の更新 = 1回のリクエスト。全部 URL で Network タブに見える |
-| ページの一部だけキャッシュしたい | ビューを別 URL にして、`<Include>` と `<Include client>` で組み立てる |
+| Hono: folder structure differs across a team | File conventions (`routes/`, `views/`, `actions/`, `islands/`, `api/`, `*.server.ts`) |
+| Hono: heavy RPC types, method chains for types | Typed API with types per function, no chains |
+| Hono: differences between runtimes | A check that runs the same app on Node / Bun / Deno / Workers |
+| Sharing state between islands is hard | `createStore()` |
+| State is lost on navigation | `persist` islands are moved, not re-created; `useNav()` reports URL changes |
+| Islands do not suit app-like screens | ③ app regions (a large island + RSC) |
+| Deciding what becomes an island | A fixed order of decisions ([tutorial.md](tutorial.md)) |
+| Fragments mean many requests and more server load | They are GETs, so CDNs, ETag (304) and the view cache all work |
+| The flow of updates is hard to follow | One update = one request, always a URL in the Network tab |
+| Caching only part of a page | Give the part its own URL as a view; assemble with `<Include>` and `<Include client>` |
 
-## 8. ほかのフレームワークとの比較
+## 8. Comparison
 
-| | 読みこみ | 書きこみ | キャッシュ | RSC | 送る JS |
+| | Reads | Writes | Caching | RSC | JavaScript sent |
 |---|---|---|---|---|---|
-| **Seam** | loader（GET） | `'use server'` → 決まった URL に POST + 303 | HTTP だけ | オプション（データとして + slot） | 島の分だけ |
-| Next.js | サーバーコンポーネント | Server Actions | 独自（`'use cache'` など） | 必須 | ページ全体のクライアント部品 |
-| React Router v7 | loader | route action | HTTP + 再取得 | 対応中 | アプリ全体（SPA） |
-| TanStack Start | loader + `createServerFn` | `createServerFn` | ルーター / Query | 対応（データとして） | アプリ全体 |
-| Astro | `.astro` テンプレート | Actions | HTTP | なし | 島の分だけ |
-| HonoX | Hono のハンドラー | Hono のハンドラー | HTTP | なし | 島の分だけ |
+| **Seam** | loaders (GET) | `'use server'` → POST to a fixed URL + 303 | HTTP only | Optional (as data + slots) | Islands only |
+| Next.js | Server Components | Server Actions | Its own (`'use cache'` and more) | Required | Every client component of the page |
+| React Router v7 | loaders | route actions | HTTP + revalidation | In progress | The whole app (SPA) |
+| TanStack Start | loaders + `createServerFn` | `createServerFn` | Router / Query | Supported (as data) | The whole app |
+| Astro | `.astro` templates | Actions | HTTP | No | Islands only |
+| HonoX | Hono handlers | Hono handlers | HTTP | No | Islands only |
 
-Seam の位置は、**「全部 React / TSX で書けて、React Router と同じ loader の考え方で、JS は島の分だけ」**です。
+Seam's spot: **everything in React / TSX, React Router's loader model, and JavaScript only for islands.**
 
-## 9. 今の状態とこれから
+## 9. Where it stands
 
-**できていること（MVP）**
-- コア、ファイルベースルーティング、loader、`'use server'`（JS なしでも `useActionState` まで動く）
-- アイランド、ナビゲーション用スクリプト（URL の通知、スクロールとフォーカス、読みこみ中の表示）
-- ビュー（`<Include>` / `<Include client>`）とビュー用キャッシュ
-- 型付き API
-- RSC（オプション）：Flight での取得、slot、SSR（最初の HTML から表示し、取得しなおさずにハイドレーション）
-- アダプター：Node / Bun / Deno / Cloudflare Workers（4つとも実際に動かして確認）
-- `seam` コマンド、`create-seam`、配布用のビルド
+**Done (MVP)**
+- The core, file-based routing, loaders, `'use server'` (including `useActionState` without JavaScript)
+- Islands and the navigation script (URL notifications, scroll and focus, loading state)
+- Views (`<Include>` / `<Include client>`) and the view cache
+- The typed API
+- RSC (optional): Flight fetches, slots, SSR (shown in the first HTML, hydrated without fetching again)
+- Adapters for Node / Bun / Deno / Cloudflare Workers (all four run in checks)
+- The `seam` command, `create-seam`, a publishable build
 
-**これから**
-- npm の名前を決めて公開する（`seam` は npm で取られている）
-- サーバーが一部だけを描く `X-Seam-Partial`
-- RSC のビューの中での `<Include>` や `'use server'` の受け渡し
-- Workers で RSC を使えるようにする
-- ドキュメントのサイト
+**Next**
+- Pick an npm name and publish (`seam` is taken on npm)
+- `X-Seam-Partial` (the server rendering only part of a page)
+- `<Include>` and passing `'use server'` functions inside RSC views
+- RSC on Workers
+- A documentation site

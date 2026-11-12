@@ -1,103 +1,103 @@
-# 最初のプロンプト（原文）
+# The original prompt
 
-Seam の設計を始めるときに渡したプロンプトです。手を加えずにそのまま残しています。
-このあと会話の中で決めたこと・変えたことは [vision.md](vision.md) にまとめています。
-
----
-
-あなたは、Webフレームワーク設計にくわしいシニアエンジニアです。
-私が作ろうとしている「フロントエンドとバックエンドの境界をシンプルにする、Web標準ベースのReactフルスタックフレームワーク」の設計を、一緒に考えてください。
-
-# 私について
-- フロントエンドエンジニア（React / TypeScript / Next.js が主な技術）
-- これまで Next.js を使ってきたが、Next.js 独自の知識が多すぎることに不満がある
-
-# 作りたい理由（Next.js への不満）
-- Server Actions、'use client' / 'use server' の境界、RSC独自の仕組みなど、Web標準ではない独自の考え方を覚える必要がある
-- キャッシュが複雑（以前の暗黙のキャッシュ、revalidatePath / revalidateTag、Next.js 16 以降の Cache Components・'use cache'・cacheLife・cacheTag・Partial Prefetching など）
-- コンパイラの変換が多く、書いたコードと実際に動くコードがちがうので、挙動を追いにくい
-
-# 目指す方向
-- Hono のように軽量で、コアは Web 標準（Request / Response / ReadableStream / FormData / fetch など）だけで作る
-- コアは `(Request) => Promise<Response>` の1つの関数
-- インフラごとにアダプターを用意する（Node.js、Bun、Deno、Cloudflare Workers など）。Node.js だけは IncomingMessage と Request/Response の変換が必要
-- 考え方は「境界をなくす」ではなく「境界を見えるようにして、越えるのを楽にする」
-
-# 設計の方針（ここまでに決めたこと）
-1. データの読み込みは route ごとの loader（GET）
-2. データの書き込みは action。HTML の <form method="post"> で動き、終わったら 303 リダイレクト → GET で loader が再実行される。revalidate のような専用APIは作らない
-3. JS が使えるときは、クライアントがフォーム送信を横取りして fetch で同じ処理をする。サーバー側のコードは JS あり・なしで同じ
-4. キャッシュはフレームワークが持たず、HTTP の Cache-Control ヘッダーにまかせる
-5. ビルド時の変換（魔法）は最小限にする。必要なのは「サーバー用コードをクライアント用バンドルに入れない」ことと、'use server' の変換くらい。変換後の姿はドキュメントで明確にする
-6. 描画は SSR が土台。遅い部分はストリーミング（ReadableStream）。部分更新は「HTMLのかけら」を返す方式。細かい操作が必要な部分だけアイランドとして React をハイドレーションする
-7. 入れ子のレイアウトは、ルートを入れ子にしてそれぞれに loader を持たせる（Remix / React Router の考え方）。loader は並行して動かす
-
-# TanStack Start から取り入れたい考え方
-- 「RSC はデータである」：サーバーコンポーネントを、サーバーが持つツリーではなく、取得・キャッシュ・表示できるデータ（React Flight のストリーム）として扱う
-- ツリーの持ち主はクライアント（クライアントファースト）
-- Composite Components のような「slot（差しこみ口）」の仕組み：サーバーがUIの骨組みを描画し、クライアントが children / render props / component props で操作できる部品を差しこむ
-- サーバーとの境界を明示的にする
-- ただし RSC は必須ではなく、使いたい場所だけで使えるオプションにしたい
-
-# ただし、書き方は React 標準に寄せたい
-- TanStack Start は 'use server' を使わず createServerFn で境界を作るが、私は React 標準の 'use server' をうまく使いたい
-- 案：書き込み（mutation）は 'use server' を使う（<form action={fn}> や useActionState と組み合わせられる）。読み込みは GET の loader / 関数にして Cache-Control でキャッシュできるようにする（'use server' は基本 POST なのでキャッシュと相性が悪いため）
-- 'use server' の関数は「決まった URL の普通の POST エンドポイント（中身は Request → Response）」にコンパイルされる、と明確に決めたい
-- 'use client' は React のルール通りに使う
-
-# 気をつけたいこと
-- Hono の弱点（フォルダ構成などの決まりがなくチームで書き方がバラバラになる、RPC の型推論が重くなりやすい、型のためにメソッドチェーンが必要、ランタイムごとの差）を、必要な部分だけ決まりを作ることで補いたい
-- 「ページの一部だけキャッシュしたい」という Next.js の Cache Components が解決している問題は、HTTP の Cache-Control だけでは難しい。ページの部分ごとに別URLにして、それぞれに Cache-Control を付け、HTMLのかけらやRSCデータとして組み立てる、などの方法を考えたい
-- 「やらないこと」をはっきり決めたい
-
-# お願いしたいこと
-次の順番で答えてください。
-1. 設計の原則（5〜7個）と、それぞれの理由
-2. 1回のリクエストの流れを、具体的なステップで追った説明（GET でページを表示する場合、フォームで POST する場合、JS ありで部分更新する場合、RSC をデータとして取得する場合）
-3. 開発者が書くコードのイメージ（route ファイル、loader、'use server' の action、slot を使う例）
-4. 'use server' をどう変換するか（変換前と変換後のコード）
-5. コアの最小実装（TypeScript）と、各アダプター（Node.js、Bun、Deno、Cloudflare Workers）の実装イメージ
-6. ビルドの構成（Vite プラグインで何をするか）
-7. 最初に作る範囲（MVP）と、そのあとのロードマップ
-8. この設計のデメリットとトレードオフ、Next.js / React Router / TanStack Start / Remix 3 / HonoX との比較
-
-# 回答のルール
-- 中学生でも分かるような、やさしく自然な日本語で書いてください。かたい言い回しや、むずかしすぎる専門用語は避けてください
-- 抽象的な説明より、具体的なステップやコードで説明してください
-- 根っこの考え方（なぜそうするのか）から説明してください
-- React、Vite、@vitejs/plugin-rsc などのライブラリの今のAPIについて、確信がないことは推測で書かず、「確認が必要」とはっきり書いてください
+The prompt Seam started from, followed by the direction added during the conversation.
+What was decided or changed afterwards is in [vision.md](vision.md).
 
 ---
 
-# 途中で追加した方針（原文）
+You are a senior engineer who knows web framework design well.
+Help me design what I want to build: "a web-standard, full-stack React framework that keeps the boundary between frontend and backend simple."
 
-## React Router v7 との関係
+# About me
+- Frontend engineer (mainly React / TypeScript / Next.js)
+- I have used Next.js so far, and I am unhappy with how much Next.js-specific knowledge it demands
 
-私の設計はreact router v7と違って、動く部分だけJSを送るという設計です
+# Why I want to build it (my problems with Next.js)
+- I have to learn concepts that are not web standards: Server Actions, the 'use client' / 'use server' boundary, RSC-specific mechanisms
+- Caching is complicated (the old implicit caching, revalidatePath / revalidateTag, and since Next.js 16: Cache Components, 'use cache', cacheLife, cacheTag, Partial Prefetching, …)
+- The compiler transforms so much that the code I write differs from the code that runs, which makes behavior hard to follow
 
-React Router v7（フレームワークモード）は、すでに次のものを持っている：
-- loader / action、<Form> による JS なしでも動くフォーム、action 後の loader 自動再実行
-- Web 標準の Request / Response
-- headers の export による Cache-Control でのキャッシュ
-- 入れ子ルートと loader の並行実行
-- 各インフラ向けのアダプター、Vite プラグイン
+# Direction
+- Lightweight like Hono, with a core built only on web standards (Request / Response / ReadableStream / FormData / fetch, …)
+- The core is a single function: `(Request) => Promise<Response>`
+- One adapter per platform (Node.js, Bun, Deno, Cloudflare Workers, …). Only Node.js needs to convert between IncomingMessage and Request/Response
+- The idea is not "remove the boundary" but "make the boundary visible and make it easy to cross"
 
-## このフレームワークの中心
+# Design decisions so far
+1. Reads are per-route loaders (GET)
+2. Writes are actions. They work with an HTML <form method="post">, finish with a 303 redirect, and the following GET runs the loaders again. No dedicated API like revalidate
+3. When JS is available, the client intercepts form submissions and does the same thing with fetch. The server code is the same with and without JS
+4. The framework keeps no cache; HTTP Cache-Control headers handle it
+5. Keep build-time transforms (magic) to a minimum. What is needed: keeping server code out of the client bundle, and transforming 'use server'. Document clearly what the transformed code looks like
+6. Rendering is built on SSR. Slow parts stream (ReadableStream). Partial updates return "HTML fragments". Only the parts that need fine-grained interaction hydrate React as islands
+7. Nested layouts come from nested routes, each with its own loader (the Remix / React Router idea). Loaders run in parallel
 
-つまり、私の方針1〜4・7はほぼ React Router v7 と同じ。自作する意味を出すため、次の点を「このフレームワークの中心」にしたい：
-1. ブラウザに送る JS を減らす：React Router はハイドレーション後にアプリ全体が SPA として動き、ページのコンポーネントの JS を基本的に全部送る。私のフレームワークは HTML のかけら方式とアイランドで、動く部分だけ JS を送る
-2. RSC をデータとして扱う：React Router の RSC 対応は「loader が React 要素も返せる」形で試験中。私は TanStack Start のように、RSC をデータとして取得・キャッシュし、slot で合成する
-3. 書き込みは 'use server' 中心（React Router は route の action が中心）
-4. コアを Hono くらい小さくし、API の数を絞る（clientLoader、useFetcher、shouldRevalidate などに相当するものを増やしすぎない）
-5. 必要なら Hono のような型付き API / RPC もコアに入れる
+# Ideas to take from TanStack Start
+- "RSC is data": treat Server Components not as a tree the server owns, but as data (a React Flight stream) that can be fetched, cached and displayed
+- The client owns the tree (client-first)
+- A "slot" mechanism like Composite Components: the server renders the frame of the UI, and the client plugs in components it controls through children, render props or component props
+- Make the boundary with the server explicit
+- But RSC must not be required: an option, used only where wanted
 
-## 気をつけたいこと
+# But keep the code close to standard React
+- TanStack Start draws the boundary with createServerFn instead of 'use server'. I want to make good use of React's standard 'use server'
+- Proposal: writes (mutations) use 'use server' (they combine with <form action={fn}> and useActionState). Reads are GET loaders / functions, cacheable with Cache-Control ('use server' is basically POST, which does not suit caching)
+- I want to state clearly that a 'use server' function compiles to "a plain POST endpoint at a fixed URL (Request → Response inside)"
+- 'use client' follows React's rules as they are
 
-- Hono の弱点（フォルダ構成などの決まりがなくチームで書き方がバラバラになる、RPC の型推論が重くなりやすい、型のためにメソッドチェーンが必要、ランタイムごとの差）を、必要な部分だけ決まりを作ることで補いたい
-- アイランド方式の弱点（島どうしで状態を共有しにくい、ページ移動で状態が消えやすい、アプリっぽい画面には向かない、どこを島にするか毎回決める必要がある）と、HTML かけら方式の弱点（操作のたびにサーバーと通信する、細かい動きが苦手、サーバーの負担が増える、更新の流れが追いにくくなる）への対策も考えたい
-- 「ページの一部だけキャッシュしたい」という Next.js の Cache Components が解決している問題は、HTTP の Cache-Control だけでは難しい。ページの部分ごとに別URLにして、それぞれに Cache-Control を付け、HTMLのかけらやRSCデータとして組み立てる、などの方法を考えたい
-- 「やらないこと」をはっきり決めたい
+# Things to watch out for
+- Make up for Hono's weak spots (no conventions such as folder structure, so code differs across a team; RPC type inference gets heavy; method chains are needed for types; differences between runtimes) by adding conventions only where needed
+- The problem Next.js Cache Components solves, "cache only part of a page", is hard with HTTP Cache-Control alone. Think about approaches such as giving each part of a page its own URL with its own Cache-Control, and assembling them as HTML fragments or RSC data
+- Decide clearly what we will not do
 
-## ナビゲーションについての指示
+# What I would like from you
+Answer in this order.
+1. Design principles (5–7) and the reason for each
+2. The flow of one request, step by step (showing a page with GET, posting a form, a partial update with JS, fetching RSC as data)
+3. What developers write (a route file, a loader, a 'use server' action, an example with a slot)
+4. How 'use server' is transformed (code before and after)
+5. A minimal core implementation (TypeScript) and sketches of each adapter (Node.js, Bun, Deno, Cloudflare Workers)
+6. The build setup (what the Vite plugin does)
+7. The first scope (MVP) and the roadmap after it
+8. Downsides and trade-offs of this design, and a comparison with Next.js / React Router / TanStack Start / Remix 3 / HonoX
 
-案A で始めます。ただし「SPA のルーターは作らない」は「React の木全体を持つ SPA ルーターは作らない。HTML を差しかえる小さなナビゲーション用スクリプトは持つ」と書きなおしてください。また、案A の MVP に、①残した島に URL の変化を知らせる仕組み、②スクロール位置とフォーカスの扱い、③読みこみ中の表示、を入れてください。
+# How to answer
+- Write gentle, natural Japanese that a middle school student could follow. Avoid stiff phrasing and overly technical terms
+- Prefer concrete steps and code over abstract explanations
+- Explain from the underlying reasoning (why we do it)
+- For the current APIs of React, Vite, @vitejs/plugin-rsc and other libraries, do not guess when unsure; say clearly that it needs to be checked
+
+---
+
+# Direction added during the conversation
+
+## How this differs from React Router v7
+
+Unlike React Router v7, my design sends JS only for the parts that move.
+
+React Router v7 (framework mode) already has:
+- loader / action, forms that work without JS through <Form>, automatic loader revalidation after actions
+- Web-standard Request / Response
+- Caching with Cache-Control through the `headers` export
+- Nested routes with loaders running in parallel
+- Adapters for each platform, a Vite plugin
+
+## The core of this framework
+
+So my decisions 1–4 and 7 are nearly the same as React Router v7. To make building my own worthwhile, these are the core of the framework:
+1. Send less JS to the browser: after hydration, React Router runs the whole app as a SPA and basically ships the JS for every page component. My framework uses HTML fragments and islands and sends JS only for the parts that move
+2. Treat RSC as data: React Router's RSC support is experimental, in the form "a loader may also return React elements". Like TanStack Start, I want to fetch and cache RSC as data and compose it with slots
+3. Writes center on 'use server' (React Router centers on route actions)
+4. Keep the core as small as Hono and keep the API surface small (do not keep adding equivalents of clientLoader, useFetcher, shouldRevalidate, …)
+5. Include a typed API / RPC like Hono's in the core if needed
+
+## Things to watch out for
+
+- Make up for Hono's weak spots (no conventions such as folder structure, so code differs across a team; RPC type inference gets heavy; method chains are needed for types; differences between runtimes) by adding conventions only where needed
+- Find answers to the weak spots of islands (sharing state between islands is hard, state is easily lost on navigation, app-like screens are a poor fit, deciding what becomes an island every time) and of HTML fragments (a server round trip for every interaction, fine-grained interaction is hard, more load on the server, the flow of updates is harder to follow)
+- The problem Next.js Cache Components solves, "cache only part of a page", is hard with HTTP Cache-Control alone. Think about approaches such as giving each part of a page its own URL with its own Cache-Control, and assembling them as HTML fragments or RSC data
+- Decide clearly what we will not do
+
+## Navigation
+
+Start with option A. But rewrite "do not build a SPA router" as "do not build a SPA router that owns the whole React tree; do keep a small navigation script that swaps HTML". And put these into option A's MVP: (1) a way to tell kept islands that the URL changed, (2) handling of scroll position and focus, (3) a loading indicator.

@@ -1,119 +1,120 @@
 # Seam
 
-Web 標準ベースの React フルスタックフレームワークの MVP です。
+An MVP of a web-standard, full-stack React framework.
 
-Seam は「縫い目」という意味です。サーバーとクライアントの境界をなくさず、**見える形のまま、きれいにつなぐ**ことを目指しています。
+A seam is where two pieces of fabric are joined. Seam keeps the boundary between server and client instead of hiding it: **the join stays visible, and it holds well.**
 
-> ページはただの HTML。React は「動く部分」（アイランド）にだけ、その部分の props と一緒に届ける。
+> Pages are plain HTML. React only ships for the parts that move (islands), together with their props.
 
-- コアは `(Request) => Promise<Response>` の1つの関数
-- 読みこみは loader（GET）、書きこみは `'use server'`（`POST /_action/<id>` → 303 → GET）
-- キャッシュはフレームワークが持たず、HTTP の `Cache-Control` / `ETag` にまかせる
-- アイランドがないページは React を読みこまない（ナビゲーション用スクリプト 約 3KB gzip だけ）
-- ページの一部だけキャッシュしたいときは、その部分を**ビュー**（自分の URL と Cache-Control を持つかけら）にする
-- 読みこみ用の**型付き API**（GET だけ）。型は関数1つごとに閉じていて、アプリ全体の型は作らない
-- **RSC はオプション**。ビューを RSC のデータとして取得し、島の中で `<Slot>` に部品を差しこんで組み立てる（SSR 対応）
-- Node.js / Bun / Deno / Cloudflare Workers で、同じアプリが動く
+- The core is one function: `(Request) => Promise<Response>`
+- Reads go through loaders (GET); writes go through `'use server'` (`POST /_action/<id>` → 303 → GET)
+- The framework keeps no cache of its own; HTTP `Cache-Control` and `ETag` do the job
+- A page without islands loads no React — only a navigation script of about 3 KB gzipped
+- To cache part of a page on its own terms, make that part a **view**: a fragment with its own URL and its own Cache-Control
+- A **typed API** for reads (GET only). Types stay per function; there is no app-wide type
+- **RSC is optional**: fetch a view as RSC data and compose it inside an island, plugging components into `<Slot>`s (server-rendered too)
+- The same app runs on Node.js, Bun, Deno and Cloudflare Workers
 
-ドキュメント：
+Documentation:
 
-- [docs/tutorial.md](docs/tutorial.md) … 使う人向けのチュートリアル（Todo アプリ）
-- [docs/vision.md](docs/vision.md) … 作りたいもの（設計の原則、やらないこと、比較）
-- [docs/original-prompt.md](docs/original-prompt.md) … 最初のプロンプト（原文）
+- [docs/tutorial.md](docs/tutorial.md) — tutorial for app developers (a todo app)
+- [docs/vision.md](docs/vision.md) — what Seam is aiming for: principles, non-goals, comparison
+- [docs/original-prompt.md](docs/original-prompt.md) — the prompt the project started from
 
-## アプリを作る
+## Create an app
 
 ```sh
-npm create seam@latest my-app   # まだ未公開。今は下の pnpm test:create で同じ流れを試せる
+npm create seam@latest my-app   # not published yet; `pnpm test:create` below runs the same flow
 cd my-app && npm install && npm run dev
 ```
 
-`seam` コマンド：
+The `seam` command:
 
-| コマンド | すること |
+| Command | What it does |
 |---|---|
-| `seam dev` | 開発サーバー |
-| `seam build` | 本番ビルド（`dist/client`、`dist/server`、RSC があれば `dist/rsc`） |
-| `seam start` | 本番サーバー（必ず `NODE_ENV=production`） |
+| `seam dev` | Development server |
+| `seam build` | Production build (`dist/client`, `dist/server`, and `dist/rsc` when RSC is on) |
+| `seam start` | Production server (always with `NODE_ENV=production`) |
 
-`vite.config.ts` がなければ `seam()` だけの設定で動きます。オプションを変えたいときだけ作ります。
+Without a `vite.config.ts`, the config is just `seam()`. Add one only to change options:
 
 ```ts
 seam({
   adapter: "node",        // "node" | "bun" | "deno" | "cloudflare"
   viewCache: "memory",    // "none" | "memory" | "cache-storage"
-  rsc: true,              // RSC を使う（@vitejs/plugin-rsc と react-server-dom-webpack が必要）
+  rsc: true,              // use RSC (needs @vitejs/plugin-rsc and react-server-dom-webpack)
 })
 ```
 
-## このリポジトリでの開発
+## Working on this repository
 
-Node.js 22.12 以上が必要です（Vite 8 の条件）。このリポジトリでは Node 24.22.3 に固定しています（`package.json` の `volta` と、`pnpm-workspace.yaml` の `useNodeVersion`）。
+Node.js 22.12 or later is required (Vite 8). This repository pins Node 24.22.3 (`volta` in `package.json`, `useNodeVersion` in `pnpm-workspace.yaml`).
 
 ```sh
 pnpm install
-pnpm build           # packages/seam を dist/ にコンパイル（サンプルは dist を使う）
-pnpm test            # 単体・結合テスト（vitest）
-pnpm typecheck       # 本体（ソース）と、サンプル（配布する dist の型）の両方
-pnpm example:dev     # 開発サーバー（examples/invoices）
-pnpm example:build   # 本番ビルド
+pnpm build           # compile packages/seam to dist/ (the example uses dist)
+pnpm test            # unit and integration tests (vitest)
+pnpm typecheck       # the framework source and the example (against the published dist types)
+pnpm example:dev     # dev server (examples/invoices)
+pnpm example:build   # production build
 pnpm example:start   # seam start
-pnpm e2e             # 本番ビルド + Chrome で E2E（JS あり / なし）
-pnpm test:create     # 公開用 tgz → create-seam → npm install → build → start を、リポジトリの外で確認
-pnpm test:adapters   # 同じアプリを Node / Bun / Deno / Workers（Miniflare）で動かして確認
+pnpm e2e             # production build + E2E in Chrome, with and without JavaScript
+pnpm test:create     # packed tgz → create-seam → npm install → build → start, outside the repo
+pnpm test:adapters   # run the same app on Node / Bun / Deno / Workers (Miniflare)
 ```
 
-## フォルダ
+## Layout
 
 ```
 packages/seam/src/
-  core/        app.ts（createApp）, router.ts（トライ木）, action.ts, cache-control.ts, flash.ts, context.ts,
-               include.ts（<Include> のサブリクエスト）, view-cache.ts
-  react/       render.tsx（ページとビューの SSR）, include.tsx（<Include>）
-  api/         server.ts（get()：型付き GET API）, standard-schema.ts
-  rsc/         server.ts（rsc 環境でビューを Flight にする）, bridge.ts（ssr → rsc）, client.tsx（<RscView>）, slot.tsx（<Slot>）
-  runtime/     server.ts（'use server' のサーバー側）, client.ts（ブラウザ側の参照）, island.tsx（'use client' のサーバー側）,
-               api-client.ts（*.api.ts のブラウザ側）, api-shared.ts
-  client/      entry.ts, nav.ts（ナビゲーション用スクリプト）, views.ts（<Include client> の読み込み）,
-               islands.ts（ハイドレーション）, index.ts（useNav, createStore）
+  core/        app.ts (createApp), router.ts (trie), action.ts, cache-control.ts, flash.ts, context.ts,
+               include.ts (sub-requests for <Include>), view-cache.ts
+  react/       render.tsx (SSR for pages and views), include.tsx (<Include>)
+  api/         server.ts (get(): typed GET API), standard-schema.ts
+  rsc/         server.ts (renders views to Flight in the rsc environment), bridge.ts (ssr → rsc),
+               client.tsx (<RscView>), slot.tsx (<Slot>)
+  runtime/     server.ts (server side of 'use server'), client.ts (browser-side references),
+               island.tsx (server side of 'use client'), api-client.ts (browser side of *.api.ts), api-shared.ts
+  client/      entry.ts, nav.ts (navigation script), views.ts (loads <Include client>),
+               islands.ts (hydration), index.ts (useNav, createStore)
   adapters/    node.ts, bun.ts, deno.ts, cloudflare.ts, static.ts
   vite/        plugin.ts, scan.ts
-  cli.ts       seam コマンド
-packages/seam/types.d.ts   使う側の型（tsconfig の types に "seam/types"）
-packages/create-seam/      npm create seam（template/ が Todo アプリのひな形）
-examples/invoices/         請求書アプリ（全機能の動作確認用）
-scripts/e2e.mjs            Chrome での E2E
-scripts/create-check.mjs   外で一から作る確認
-scripts/adapters-check.mjs 4つのランタイムでの確認
-docs/                      チュートリアル、設計、最初のプロンプト
+  cli.ts       the seam command
+packages/seam/types.d.ts   types for apps ("seam/types" in tsconfig types)
+packages/create-seam/      npm create seam (template/ is a todo app)
+examples/invoices/         invoice app that exercises every feature
+scripts/e2e.mjs            E2E in Chrome
+scripts/create-check.mjs   creates an app from scratch outside the repo
+scripts/adapters-check.mjs runs on four runtimes
+docs/                      tutorial, design, the original prompt
 ```
 
-## アプリの書き方（ファイル規約）
+## Writing an app (file conventions)
 
 ```
-app/routes/_layout.tsx     レイアウト（children で中のルートを受け取る）
-app/routes/index.tsx       /
-app/routes/about.tsx       /about
-app/routes/invoices/[id].tsx   /invoices/:id
-app/routes/docs/[...path].tsx  /docs/*
-app/views/invoices/summary.tsx  /_v/invoices/summary（ビュー。_layout は使えない）
-app/actions/*.ts           'use server'
-app/api/*.api.ts           型付き GET API（`get("/api/...", {...})`）
-app/islands/*.tsx          'use client'
-**/*.server.ts             サーバー専用（アイランドから import するとビルドエラー）
+app/routes/_layout.tsx          layout (receives the inner route as children)
+app/routes/index.tsx            /
+app/routes/about.tsx            /about
+app/routes/invoices/[id].tsx    /invoices/:id
+app/routes/docs/[...path].tsx   /docs/*
+app/views/invoices/summary.tsx  /_v/invoices/summary (a view; no _layout here)
+app/actions/*.ts                'use server'
+app/api/*.api.ts                typed GET API (`get("/api/...", {...})`)
+app/islands/*.tsx               'use client'
+**/*.server.ts                  server only (importing it from an island fails the build)
 ```
 
-ビルドすると `.seam/` に、ビルドが決めた内容がそのまま読める形で書き出されます。
+A build writes what it decided into `.seam/`, in readable form:
 
-- `.seam/routes.gen.ts` … ルートのトライ木
-- `.seam/views.gen.ts` … ビューのトライ木（`/_v/` の下）
-- `.seam/api.gen.ts` … 型付き API の URL の一覧
-- `.seam/actions.gen.ts` … action の ID と URL の一覧
-- `.seam/islands.gen.ts` … ブラウザに送られるファイルの一覧
+- `.seam/routes.gen.ts` — the route trie
+- `.seam/views.gen.ts` — the view trie (under `/_v/`)
+- `.seam/api.gen.ts` — typed API URLs
+- `.seam/actions.gen.ts` — action IDs and URLs
+- `.seam/islands.gen.ts` — the files sent to the browser
 
-## ビュー（ページの一部だけキャッシュする）
+## Views (caching part of a page)
 
-ビューは「自分の URL と Cache-Control を持つ、ページのかけら」です。ファイルの形はルートと同じで（`loader` + コンポーネント）、`GET /_v/...` で HTML のかけらを返します。
+A view is a fragment of a page with its own URL and its own Cache-Control. It looks like a route (`loader` + component) and `GET /_v/...` returns an HTML fragment.
 
 ```tsx
 // app/views/invoices/summary.tsx → GET /_v/invoices/summary
@@ -125,26 +126,26 @@ export default function Summary({ data }: ViewProps<typeof loader>) {
 }
 ```
 
-ページへの組みこみ方は2つです。
+There are two ways to put a view into a page:
 
-| 書き方 | どこで組み立てるか | ページの Cache-Control | 向いているもの |
+| Syntax | Assembled | Page Cache-Control | Good for |
 |---|---|---|---|
-| `<Include src="/_v/...?v=..." />` | サーバー（ページの HTML に入る） | ビューの分も合成される（一番きびしいものが勝つ） | みんなに同じ内容 |
-| `<Include src="/_v/me" client fallback={…} />` | ブラウザ（あとから fetch） | 影響しない | ユーザーごとの内容 |
+| `<Include src="/_v/...?v=..." />` | On the server (part of the page HTML) | Merged with the view's (the strictest wins) | Content that is the same for everyone |
+| `<Include src="/_v/me" client fallback={…} />` | In the browser (fetched afterwards) | Unaffected | Per-user content |
 
-ルールは次のとおりです。
+Rules:
 
-- **消すためのタグはありません。** データが変わったら URL を変えます（`?v=<更新日時>`）。古い URL のキャッシュは、もう使われなくなります。
-- `public` なページに `private` なビューをサーバーで組みこむと、ページも `private` になります。開発中は、そのことを警告で教えます（`<Include client>` を使えば、ページは `public` のままです）。
-- `<Suspense>` の中の `<Include>` が、すでに送ったヘッダーよりきびしいと分かったときは、エラーを出します（ヘッダーは送ったあとで変えられないため）。
-- `<Include>` を使ったページには、ETag を付けません（ビューは自分のバージョンを持つため）。
-- action のあと（フォーム送信、島からの呼び出し）は、ブラウザ側のビューを `cache: "no-cache"` で取り直します。
-- ビュー用の共有キャッシュは、プラグインの `viewCache` で選びます：`"none"`（初期値）/ `"memory"`（1台のサーバー内）/ `"cache-storage"`（Workers・Deno。未テスト）。保存するのは、`public` で、有効期間があり、`Set-Cookie` のない応答だけです。
-- JS なしのときは、`<Include client>` は `fallback` だけが表示されます。
+- **No cache tags.** When the data changes, change the URL (`?v=<updatedAt>`). The old URL's cache entry is simply never used again.
+- Including a `private` view on the server in a `public` page makes the page `private`. In development Seam warns about it (with `<Include client>` the page stays `public`).
+- If an `<Include>` inside `<Suspense>` turns out stricter than the headers already sent, Seam logs an error (headers cannot change once sent).
+- Pages that use `<Include>` get no ETag (views carry their own versions).
+- After an action (form submit or a call from an island), client views are fetched again with `cache: "no-cache"`.
+- Pick the shared view cache with the plugin's `viewCache` option: `"none"` (default), `"memory"` (in one server process) or `"cache-storage"` (Workers, Deno; not tested yet). Only `public` responses with a lifetime and no `Set-Cookie` are stored.
+- Without JavaScript, `<Include client>` shows only its `fallback`.
 
-## 型付き API（読みこみ専用）
+## Typed API (reads only)
 
-`*.api.ts` に、GET のエンドポイントを関数として書きます。書きこみは `'use server'` を使います。
+Write GET endpoints as functions in `*.api.ts`. Writes use `'use server'`.
 
 ```ts
 // app/api/invoices.api.ts
@@ -152,45 +153,45 @@ import { get } from "seam/api";
 import { z } from "zod";
 
 export const searchInvoices = get("/api/invoices", {
-  query: z.object({ q: z.string().default("") }),        // Standard Schema なら何でもよい（Zod / Valibot / ArkType…）
+  query: z.object({ q: z.string().default("") }),        // any Standard Schema (Zod, Valibot, ArkType, ...)
   headers: { "Cache-Control": "private, max-age=0" },
-  handler: async ({ query }) => db.search(query.q),       // JSON / data(value, { headers, etag }) / Response を返す
+  handler: async ({ query }) => db.search(query.q),       // return JSON, data(value, { headers, etag }) or a Response
 });
 ```
 
 ```tsx
-// 島（ブラウザ）：GET /api/invoices?q=... を fetch するだけ。戻り値の型は handler から決まる
+// In an island (browser): just fetches GET /api/invoices?q=...; the return type comes from the handler
 const results = await searchInvoices({ query: { q } });
 
-// loader（サーバー）：HTTP を通さず、handler を直接呼ぶ
+// In a loader (server): calls the handler directly, no HTTP
 const results = await searchInvoices();
 ```
 
-- **型は関数ごとに閉じています。** アプリ全体の型の木も、メソッドチェーンもないので、API が増えても型チェックが重くなりにくいです（Hono RPC の弱点への答え）。
-- パスはソースに文字列で書きます。ビルドは、ソースを実行せずに読むだけで URL を決めます（`.seam/api.gen.ts` で確認できます）。
-- クエリの検証に失敗すると、`400 { error, issues }` を返します。クエリの値は文字列で届くので、数値には `z.coerce.number()` のような変換を使います。
-- ブラウザ側で失敗すると `ApiError`（`seam/client`）を投げます。`status` と `body` を持っています。
-- ルールは、`/api/` で始まること、GET だけであること（POST は 405）です。同じ形のパス（`/api/a/:id` と `/api/a/:slug`）はビルドエラーになります。
-- 戻り値は JSON を通るので、`Date` などは文字列になります。サーバーで直接呼んだときとは型の実体がずれることがあるので、JSON にできる値だけを返してください。
-- 自分で書かずに、Hono のアプリを `createApp({ mount: { "/api": hono.fetch } })` で取り付けることもできます。
+- **Types stay per function.** There is no app-wide type tree and no method chain, so type checking stays fast as the API grows (Seam's answer to the weak spot of Hono RPC).
+- Paths are string literals in the source. The build reads the source without running it to decide URLs (see `.seam/api.gen.ts`).
+- A failed query validation returns `400 { error, issues }`. Query values arrive as strings, so use conversions such as `z.coerce.number()` for numbers.
+- In the browser, failures throw an `ApiError` (`seam/client`) with `status` and `body`.
+- Paths must start with `/api/`, and endpoints are GET only (POST gets 405). Paths with the same shape (`/api/a/:id` and `/api/a/:slug`) fail the build.
+- Results travel as JSON, so a `Date` becomes a string. A direct server-side call does not go through JSON, so return JSON-compatible values only.
+- You can also mount a Hono app instead: `createApp({ mount: { "/api": hono.fetch } })`.
 
-## RSC（オプション）：サーバーコンポーネントを「データ」として使う
+## RSC (optional): Server Components as data
 
-`seam({ rsc: true })` にすると、ビューを **RSC（Flight）でも**取得できるようになります。`@vitejs/plugin-rsc` と `react-server-dom-webpack@19.3.1` が必要です。
+With `seam({ rsc: true })`, views can **also** be fetched as RSC (Flight). This needs `@vitejs/plugin-rsc` and `react-server-dom-webpack@19.3.1`.
 
 ```
-GET /_v/invoices/1/card       → HTML のかけら（今までどおり）
-GET /_v/invoices/1/card.rsc   → 同じビューを RSC のデータで（rsc 環境で描く）
+GET /_v/invoices/1/card       → HTML fragment (as before)
+GET /_v/invoices/1/card.rsc   → the same view as RSC data (rendered in the rsc environment)
 ```
 
 ```tsx
-// app/views/invoices/[id]/card.tsx（サーバーコンポーネント。ファイルは HTML 版と同じ）
+// app/views/invoices/[id]/card.tsx (a Server Component; the same file as the HTML version)
 import { Slot } from "seam/slot";
 export default function InvoiceCard({ data }) {
   return (
     <article>
       <h2>{data.invoice.title}</h2>
-      {/* 穴。中身はブラウザ（島）が決める。props はサーバーから届く */}
+      {/* A hole. The browser (the island) decides what goes in; the props come from the server. */}
       <Slot name="actions" props={{ id: data.invoice.id, status: data.invoice.status }} />
     </article>
   );
@@ -198,71 +199,70 @@ export default function InvoiceCard({ data }) {
 ```
 
 ```tsx
-// 島（ブラウザ）：木の持ち主は島。サーバーの UI は「取得したデータ」として木の一部になる
+// In an island (browser): the island owns the tree; the server UI becomes part of it as fetched data
 import { RscView } from "seam/rsc";
 <RscView src={`/_v/invoices/${id}/card.rsc`} slots={{ actions: CardActions }} fallback={<p>Loading…</p>} />
 ```
 
-- RSC のビューは、HTML のビューと同じように扱えます。普通の GET なので、Cache-Control・ETag・ビュー用キャッシュがそのまま使えます。
-- action のあと（フォーム送信、島からの呼び出し）は、`<RscView>` も取り直します。新しい内容が届くまでは、古い表示のままです。
-- Flight を読むしくみ（約 7KB gzip）は、`<RscView>` を使う島があるページだけが読みこみます。
-- `'use server'` は、RSC を使っても Seam のしくみ（`POST /_action/<id>`）のままです。Seam の変換を plugin-rsc より先に動かしているからです。
-- 今の制限
-  - SSR では、島の中の `<RscView>` もサーバーで描きます（`<Include>` と同じサブリクエスト。Cache-Control もページに合成）。使った Flight を島に添えて送るので、ブラウザはもう一度取得せずにハイドレーションします。
-  - RSC のビューの中では、`<Include>` は使えません。また、`'use server'` の関数をクライアントに渡すこともできません。渡したいときは、`<Slot>` に島側の部品を差しこみ、そこから呼んでください。
-  - plugin-rsc の実験的なオプション（`customClientEntry`）を使っています。plugin-rsc を上げるときは、`pnpm e2e` で確かめてください。
+- RSC views behave like HTML views. They are plain GETs, so Cache-Control, ETag and the view cache all apply.
+- After an action (form submit or a call from an island), `<RscView>` fetches again. The old content stays on screen until the new one arrives.
+- The Flight decoder (about 7 KB gzipped) is loaded only on pages with an island that uses `<RscView>`.
+- `'use server'` keeps Seam's protocol (`POST /_action/<id>`) even with RSC, because Seam's transform runs before plugin-rsc's.
+- SSR renders `<RscView>` inside islands on the server too (a sub-request, like `<Include>`; its Cache-Control is merged into the page). The Flight text travels with the island, so the browser hydrates without fetching again.
+- Current limits
+  - `<Include>` does not work inside RSC views, and `'use server'` functions cannot be passed to the client from them. Plug an island component into a `<Slot>` and call the action from there.
+  - Seam uses an experimental plugin-rsc option (`customClientEntry`). Run `pnpm e2e` when upgrading plugin-rsc.
 
-## 公開 API
+## Public API
 
-| サーバー（`seam`） | クライアント（`seam/client`） |
+| Server (`seam`) | Client (`seam/client`) |
 |---|---|
-| `loader` / `default` / `ErrorBoundary`（ルートの export） | `export const hydrate = "load" \| "idle" \| "visible"`（アイランド） |
-| `data(value, { headers, etag })` | `export const persist = true`（アイランド） |
+| `loader` / `default` / `ErrorBoundary` (route exports) | `export const hydrate = "load" \| "idle" \| "visible"` (islands) |
+| `data(value, { headers, etag })` | `export const persist = true` (islands) |
 | `redirect(url)` | `useNav()` → `{ url, pending }` |
 | `getContext()` | `createStore(initial)` |
 | `getActionResult(action)` | |
 | `<Include src client? fallback?>` | |
-| `get(path, { query, headers, handler })`（`seam/api`） | `ApiError` |
-| `<Slot name props>`（`seam/slot`。RSC のビューの中で使う） | `<RscView src slots fallback>`（`seam/rsc`） |
-| `formProps(action)`（逃げ道） | |
+| `get(path, { query, headers, handler })` (`seam/api`) | `ApiError` |
+| `<Slot name props>` (`seam/slot`, inside RSC views) | `<RscView src slots fallback>` (`seam/rsc`) |
+| `formProps(action)` (escape hatch) | |
 | `memoryViewCache()` / `cacheStorageViewCache()` | |
 | `createApp({ routes, views, actions, api, render, viewCache, mount })` | |
 
-## ビルド時の変換（全部で4つ。`rsc: true` のときは plugin-rsc の変換も加わる）
+## Build-time transforms (four; plugin-rsc adds its own when `rsc: true`)
 
 1. **`'use server'`**
-   - ブラウザ側：`export const f = createServerReference("<id>")` に置きかえる（中身は fetch するだけ）
-   - サーバー側：書いたままのコードに `registerServerReference(f, "<id>")` を足す
+   - Browser: replaced by `export const f = createServerReference("<id>")` (just a fetch)
+   - Server: the code as written, plus `registerServerReference(f, "<id>")`
 2. **`'use client'`**
-   - サーバー側：`createIsland(...)` で包み、`<seam-island>` として描く
-   - ブラウザ側：そのまま
+   - Server: wrapped with `createIsland(...)` and rendered as `<seam-island>`
+   - Browser: unchanged
 3. **`*.api.ts`**
-   - ブラウザ側：`export const f = createApiReference("/api/...")` に置きかえる（中身は fetch するだけ）
-   - サーバー側：そのまま
-4. **ガード**：`*.server.*` や `server-only` が、ブラウザ用のバンドルに入ったらビルドエラー
+   - Browser: replaced by `export const f = createApiReference("/api/...")` (just a fetch)
+   - Server: unchanged
+4. **Guard**: `*.server.*` or `server-only` in the browser bundle fails the build
 
-## 確認済みのこと
+## Verified
 
-- `vitest`：75件（ルーター、Cache-Control の合成、action、SSR、`$$FORM_ACTION`、JS なしの `useActionState`、Node アダプター、ガード、ビューと `<Include>`、型付き API と型の推論、RSC への振り分け、`<Slot>`）
-- Chrome での E2E：20件（JS なしのフォーム、島の JS なし動作、React を読まないページ、`<main>` の差しかえ、`persist` の島、スクロールとフォーカス、戻る、`aria-busy`、ビュー、型付き API、RSC と slot と RSC の SSR、コンソールエラーなし）
-- 公開用の tgz から `create-seam` で作ったアプリが、リポジトリの外で `npm install` → build → start で動く（`pnpm test:create`）
-- 同じアプリが Node 24 / Bun 1.4.4 / Deno 2.9.6 / Cloudflare Workers（Miniflare = workerd）で動く（`pnpm test:adapters`）
-- 開発サーバー（`vite`）でも、RSC の取得・slot・action のあとの取り直しを確認
-- 開発サーバー（`vite`）での SSR、action、島のハイドレーション
+- `vitest`: 75 tests (router, Cache-Control merging, actions, SSR, `$$FORM_ACTION`, `useActionState` without JavaScript, the Node adapter, the guard, views and `<Include>`, the typed API and its type inference, RSC routing, `<Slot>`)
+- E2E in Chrome: 20 checks (forms without JavaScript, islands without JavaScript, pages that load no React, `<main>` swaps, `persist` islands, scroll and focus, back navigation, `aria-busy`, views, the typed API, RSC with slots and SSR, no console errors)
+- An app created by `create-seam` from the packed tgz runs outside the repo: `npm install` → build → start (`pnpm test:create`)
+- The same app runs on Node 24, Bun 1.4.4, Deno 2.9.6 and Cloudflare Workers (Miniflare = workerd) (`pnpm test:adapters`)
+- The dev server (`vite`): SSR, actions, island hydration, RSC fetches, slots, and refetching after actions
 
-## 注意点・未確認のこと
+## Caveats and open questions
 
-- **React の内部の仕組みに頼っています。** `$$FORM_ACTION` / `$$IS_SIGNATURE_EQUAL` / `formState` は、react-dom@19.3.1 のソースで動きを確認しました。ただし公開 API ではありません。そのため React は `19.3.1` に固定しています（peerDependencies も同じ）。上げるときは `pnpm test` で確かめてください。壊れたときの逃げ道は `formProps()` です。
-- **本番では `NODE_ENV=production` で起動してください。** 指定しないと React の開発用ビルドが動き、遅くなるうえ、RSC の応答にファイルパスなどのデバッグ情報が入ります（Node アダプターは警告を出します）。
-- **Cloudflare Workers** では、`getContext()` のために `nodejs_compat` が必要です。Workers で RSC を使う構成（`adapter: "cloudflare"` + `rsc: true`）はまだ対応していません。
-- **npm には未公開です。** パッケージ名の `seam` は npm ですでに使われているので、公開するときはスコープ付きの名前（例：`@seamjs/core`）にする必要があります。
-- **ナビゲーション用スクリプトは Navigation API が前提**です。対応していないブラウザでは何もせず、普通のページ移動になります。
-- **アイランドの制限**
-  - props は JSON にできる値だけです。
-  - アイランドは別々の React ルートとして描くので、中の `<Suspense>` は全部そろってから HTML に入ります（ストリーミングされません）。
-- **ナビゲーション用スクリプトのリクエスト（`X-Seam-Nav: 1`）は、Suspense を全部待ってから返します**（DOMParser では React のストリーミング用 `<script>` が動かないため）。
-- まだ作っていないもの：サーバーが一部だけを描く `X-Seam-Partial`、RSC のビューの中での `<Include>` と `'use server'` の受け渡し。
+- **Seam relies on React internals.** `$$FORM_ACTION`, `$$IS_SIGNATURE_EQUAL` and `formState` were checked against the react-dom@19.3.1 source, but they are not public API. That is why React is pinned to `19.3.1` (peerDependencies too). Run `pnpm test` when upgrading. If they break, `formProps()` is the escape hatch.
+- **Run production with `NODE_ENV=production`.** Otherwise React runs its development build: slower, and RSC responses include debug info such as file paths (the Node adapter warns about it).
+- **Cloudflare Workers** needs `nodejs_compat` for `getContext()`. RSC on Workers (`adapter: "cloudflare"` + `rsc: true`) is not supported yet.
+- **Not on npm yet.** The name `seam` is already taken on npm, so publishing needs a scoped name (for example `@seamjs/core`).
+- **The navigation script needs the Navigation API.** Browsers without it get plain page loads.
+- **Island limits**
+  - Props must be JSON values.
+  - Each island is its own React root, so its `<Suspense>` boundaries are resolved before the HTML is sent (no streaming inside islands).
+- **Requests from the navigation script (`X-Seam-Nav: 1`) wait for every Suspense boundary** (React's streaming `<script>`s do not run in DOMParser).
+- Not built yet: `X-Seam-Partial` (the server rendering only part of a page), `<Include>` and passing `'use server'` functions inside RSC views.
 
-## ライセンス
+## License
 
 [MIT](LICENSE)
