@@ -1,0 +1,142 @@
+{
+  "name": "seam",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Web-standard React framework: HTML first, JS only for islands.",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./react": {
+      "source": "./src/react/index.ts",
+      "types": "./dist/react/index.d.ts",
+      "default": "./dist/react/index.js"
+    },
+    "./client": {
+      "source": "./src/client/index.ts",
+      "types": "./dist/client/index.d.ts",
+      "default": "./dist/client/index.js"
+    },
+    "./runtime/server": {
+      "source": "./src/runtime/server.ts",
+      "types": "./dist/runtime/server.d.ts",
+      "default": "./dist/runtime/server.js"
+    },
+    "./runtime/client": {
+      "source": "./src/runtime/client.ts",
+      "types": "./dist/runtime/client.d.ts",
+      "default": "./dist/runtime/client.js"
+    },
+    "./runtime/island": {
+      "source": "./src/runtime/island.tsx",
+      "types": "./dist/runtime/island.d.ts",
+      "default": "./dist/runtime/island.js"
+    },
+    "./client/entry": {
+      "source": "./src/client/entry.ts",
+      "types": "./dist/client/entry.d.ts",
+      "default": "./dist/client/entry.js"
+    },
+    "./vite": {
+      "source": "./src/vite/plugin.ts",
+      "types": "./dist/vite/plugin.d.ts",
+      "default": "./dist/vite/plugin.js"
+    },
+    "./adapters/node": {
+      "source": "./src/adapters/node.ts",
+      "types": "./dist/adapters/node.d.ts",
+      "default": "./dist/adapters/node.js"
+    },
+    "./adapters/bun": {
+      "source": "./src/adapters/bun.ts",
+      "types": "./dist/adapters/bun.d.ts",
+      "default": "./dist/adapters/bun.js"
+    },
+    "./adapters/deno": {
+      "source": "./src/adapters/deno.ts",
+      "types": "./dist/adapters/deno.d.ts",
+      "default": "./dist/adapters/deno.js"
+    },
+    "./adapters/cloudflare": {
+      "source": "./src/adapters/cloudflare.ts",
+      "types": "./dist/adapters/cloudflare.d.ts",
+      "default": "./dist/adapters/cloudflare.js"
+    },
+    "./api": {
+      "source": "./src/api/server.ts",
+      "types": "./dist/api/server.d.ts",
+      "default": "./dist/api/server.js"
+    },
+    "./runtime/api-client": {
+      "source": "./src/runtime/api-client.ts",
+      "types": "./dist/runtime/api-client.d.ts",
+      "default": "./dist/runtime/api-client.js"
+    },
+    "./rsc": {
+      "source": "./src/rsc/client.tsx",
+      "types": "./dist/rsc/client.d.ts",
+      "default": "./dist/rsc/client.js"
+    },
+    "./slot": {
+      "source": "./src/rsc/slot.tsx",
+      "types": "./dist/rsc/slot.d.ts",
+      "default": "./dist/rsc/slot.js"
+    },
+    "./rsc/server": {
+      "source": "./src/rsc/server.ts",
+      "types": "./dist/rsc/server.d.ts",
+      "default": "./dist/rsc/server.js"
+    },
+    "./rsc/bridge": {
+      "source": "./src/rsc/bridge.ts",
+      "types": "./dist/rsc/bridge.d.ts",
+      "default": "./dist/rsc/bridge.js"
+    },
+    "./types": {
+      "types": "./types.d.ts"
+    }
+  },
+  "dependencies": {
+    "es-module-lexer": "^3.0.4"
+  },
+  "peerDependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "vite": "*",
+    "@vitejs/plugin-rsc": "^0.5.38",
+    "react-server-dom-webpack": "19.3.1"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    },
+    "@vitejs/plugin-rsc": {
+      "optional": true
+    },
+    "react-server-dom-webpack": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=22.12"
+  },
+  "files": [
+    "dist",
+    "types.d.ts",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && chmod +x dist/cli.js",
+    "prepack": "pnpm build"
+  },
+  "sideEffects": [
+    "./dist/client/entry.js",
+    "./dist/rsc/client.js",
+    "./dist/react-augment.js"
+  ],
+  "bin": {
+    "seam": "./dist/cli.js"
+  }
+}
