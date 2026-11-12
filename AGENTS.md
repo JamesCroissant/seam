@@ -1,113 +1,113 @@
-# Seam — AI エージェント向けガイド
+# Seam — guide for AI agents
 
-このリポジトリで作業する AI エージェント（Claude Code / Codex）のための指示書です。
-CLAUDE.md はこのファイルを読みこんでいるので、内容はここだけに書きます。
+Instructions for AI agents (Claude Code, Codex) working in this repository.
+CLAUDE.md imports this file, so everything lives here.
 
-## このプロジェクト
+## The project
 
-Seam は、Web 標準ベースの React フルスタックフレームワークです。
+Seam is a web-standard, full-stack React framework.
 
-> ページはただの HTML。React は「動く部分」（アイランド）にだけ届ける。
-> 境界はなくさず、URL として見えるようにして、越えるのを楽にする。
+> Pages are plain HTML. React only ships for the parts that move (islands).
+> Keep the boundary between server and client, make it visible as URLs, and make it easy to cross.
 
-設計の判断は、必ず次のドキュメントに合わせてください。
+Design decisions must follow these documents:
 
-- [docs/vision.md](docs/vision.md) … 5つの中心、設計の原則、**やらないこと**、比較
-- [docs/original-prompt.md](docs/original-prompt.md) … 最初のプロンプト（原文。変更しない）
-- [docs/tutorial.md](docs/tutorial.md) … 使う人向けのチュートリアル
-- [README.md](README.md) … 機能、公開 API、確認済みのこと、注意点
+- [docs/vision.md](docs/vision.md) — the five core ideas, design principles, **non-goals**, comparison
+- [docs/original-prompt.md](docs/original-prompt.md) — the prompt the project started from (do not edit)
+- [docs/tutorial.md](docs/tutorial.md) — tutorial for app developers
+- [README.md](README.md) — features, public API, what is verified, caveats
 
-## ユーザーへの返答
+## Talking to the user
 
-- **やさしく自然な日本語**で書く。かたい言い回しや、むずかしすぎる専門用語は避ける
-- 抽象的な説明より、具体的なステップやコードで説明する
-- 「なぜそうするのか」から説明する
-- ライブラリの今の API（React、Vite、@vitejs/plugin-rsc など）に確信がないときは、推測で書かずに、ソースや型定義を読んで確かめる。確かめられないときは「確認が必要」と書く
+- Reply in plain, natural Japanese. Avoid stiff phrasing and heavy jargon.
+- Prefer concrete steps and code over abstract explanations.
+- Start from why something is done.
+- When unsure about a library's current API (React, Vite, @vitejs/plugin-rsc, …), read its source or type definitions instead of guessing. If it cannot be verified, say so.
 
-## 構成
+## Layout
 
 ```
-packages/seam/          フレームワーク本体（src/ → tsc → dist/）
-  src/core/             createApp、ルーター、action、Cache-Control、ビュー、コンテキスト
-  src/react/            SSR、<Include>
-  src/runtime/          'use server' / 'use client' / *.api.ts の変換後に使う部品
-  src/client/           ナビゲーション用スクリプト、島のハイドレーション、useNav
-  src/rsc/              RSC（オプション）
-  src/api/              型付き GET API（get()）
+packages/seam/          the framework (src/ → tsc → dist/)
+  src/core/             createApp, router, actions, Cache-Control, views, request context
+  src/react/            SSR, <Include>
+  src/runtime/          what 'use server' / 'use client' / *.api.ts compile to
+  src/client/           navigation script, island hydration, useNav
+  src/rsc/              RSC (optional)
+  src/api/              typed GET API (get())
   src/adapters/         node / bun / deno / cloudflare
-  src/vite/             Vite プラグイン（scan.ts がファイル規約）
-  src/cli.ts            seam コマンド
+  src/vite/             Vite plugin (scan.ts holds the file conventions)
+  src/cli.ts            the seam command
   test/                 vitest
-packages/create-seam/   npm create seam（template/ が Todo アプリ）
-examples/invoices/      全機能を使うサンプル（dist の seam を使う。rsc: true）
-scripts/                E2E と、外でのインストール・4ランタイムの確認
-docs/                   設計とチュートリアル
+packages/create-seam/   npm create seam (template/ is a todo app)
+examples/invoices/      example using every feature (uses seam from dist; rsc: true)
+scripts/                E2E, out-of-repo install check, four-runtime check
+docs/                   design and tutorial
 ```
 
-## コマンド
+## Commands
 
-Node は 24.22.3 に固定しています（`package.json` の `volta`、`pnpm-workspace.yaml` の `useNodeVersion`）。pnpm を使います。
+Node is pinned to 24.22.3 (`volta` in `package.json`, `useNodeVersion` in `pnpm-workspace.yaml`). Use pnpm.
 
-| コマンド | いつ使う |
+| Command | When |
 |---|---|
-| `pnpm build` | `packages/seam` を `dist/` にコンパイル。**サンプルは dist を使うので、本体を変えたら先に実行** |
-| `pnpm test` | 単体・結合テスト（vitest。`src` を直接テスト） |
-| `pnpm typecheck` | 本体（ソース）と、サンプル（配布する dist の型）の両方 |
-| `pnpm e2e` | サンプルを本番ビルドし、Chrome で JS あり・なしを確認 |
-| `pnpm test:create` | 公開用 tgz → create-seam → npm install → build → start（リポジトリの外。ネットワークが必要） |
-| `pnpm test:adapters` | 同じアプリを Node / Bun / Deno / Workers（Miniflare）で確認（ネットワークが必要） |
-| `pnpm example:dev` | サンプルの開発サーバー |
+| `pnpm build` | Compile `packages/seam` to `dist/`. **The example uses dist, so run this after changing the framework.** |
+| `pnpm test` | Unit and integration tests (vitest, against `src`) |
+| `pnpm typecheck` | Type-check the framework source and the example (against the published dist types) |
+| `pnpm e2e` | Production build of the example, then Chrome with and without JavaScript |
+| `pnpm test:create` | Packed tgz → create-seam → npm install → build → start, outside the repo (needs network) |
+| `pnpm test:adapters` | The same app on Node / Bun / Deno / Workers (Miniflare) (needs network) |
+| `pnpm example:dev` | Dev server for the example |
 
-## 変更したあとの確認
+## Checks after a change
 
-| 変えたもの | 最低限やること |
+| What changed | Run at least |
 |---|---|
-| どこでも | `pnpm test` と `pnpm typecheck` |
-| 画面・ナビゲーション・島・ビュー・RSC・プラグイン | 上に加えて `pnpm e2e` |
-| 配布の形（package.json の exports、cli、create-seam、テンプレート） | 上に加えて `pnpm test:create` |
-| アダプター、ビルドの設定 | 上に加えて `pnpm test:adapters` |
+| Anything | `pnpm test` and `pnpm typecheck` |
+| Pages, navigation, islands, views, RSC, the Vite plugin | the above plus `pnpm e2e` |
+| Packaging (package.json exports, the CLI, create-seam, the template) | the above plus `pnpm test:create` |
+| Adapters, build settings | the above plus `pnpm test:adapters` |
 
-テストが失敗したら、出力をそのまま報告してください。通ったことにしないでください。
+When a check fails, report its output as is. Never claim it passed.
 
-GitHub Actions（`.github/workflows/ci.yml`）が、PR と `main` / `dev` への push で `pnpm test`、`pnpm typecheck`、`pnpm e2e` を動かします。`main` はこのチェック（`check`）が通らないとマージできません。
+GitHub Actions (`.github/workflows/ci.yml`) runs `pnpm test`, `pnpm typecheck` and `pnpm e2e` on pull requests and on pushes to `main` / `dev`.
 
-## 守ること
+## Rules
 
-- **やらないこと（docs/vision.md の6章）を足さない**：フレームワーク独自のデータキャッシュ、キャッシュを消すタグ、SPA ルーター、route の `action`、`'use server'` での読みこみ、など
-- **公開 API を増やすときは理由を書く**：README の「公開 API」の表に1行足す理由を説明できるものだけ
-- **ビルド時の変換を増やさない**：今は4つ（`'use server'`、`'use client'`、`*.api.ts`、サーバー専用コードのガード）。変換後の姿は `.seam/*.gen.ts` で見えるようにする
-- **React は 19.3.1 に固定**：`$$FORM_ACTION` / `$$IS_SIGNATURE_EQUAL` / `formState` という React の内部の仕組みに頼っている。上げるときは react-dom のソースで動きを確かめ、全部のテストを通す
-- **`'use server'` の変換は `enforce: "pre"`**：@vitejs/plugin-rsc より先に動かして、action の仕組み（`POST /_action/<id>`）を Seam のものに保つ
-- **本番は `NODE_ENV=production`**：付け忘れると React の開発用ビルドが動き、RSC の応答にデバッグ情報が入る
-- 本体のソースの import は `.ts` 拡張子付きで書く（tsc が `.js` に書きかえる）
-- 生成ファイル（`.seam/`、`dist/`）は手で直さない
+- **Do not add non-goals** (section 6 of docs/vision.md): a framework data cache, cache-busting tags, a SPA router, route `action`s, reads through `'use server'`, and so on.
+- **Every new public API needs a reason**: only add what you can justify as one more row in the README's "Public API" table.
+- **Do not add build-time transforms**: there are four (`'use server'`, `'use client'`, `*.api.ts`, the server-only guard). Their output must stay readable in `.seam/*.gen.ts`.
+- **React is pinned to 19.3.1**: Seam relies on React internals (`$$FORM_ACTION`, `$$IS_SIGNATURE_EQUAL`, `formState`). Before upgrading, check their behavior in the react-dom source and pass every check.
+- **The `'use server'` transform runs with `enforce: "pre"`**, before @vitejs/plugin-rsc, so actions keep Seam's protocol (`POST /_action/<id>`).
+- **Production runs with `NODE_ENV=production`**: without it React runs its development build and RSC responses carry debug info.
+- Imports inside the framework source keep the `.ts` extension (tsc rewrites them to `.js`).
+- Never edit generated files (`.seam/`, `dist/`) by hand.
 
-## 環境の注意
+## Environment notes
 
-- volta の pnpm を使うときは `PATH=$HOME/.volta/bin:$PATH` にする。`useNodeVersion` により、スクリプトは Node 24 で動く
-- E2E は、インストール済みの Google Chrome を `playwright-core` から使う（ブラウザのダウンロードは不要）
-- サーバーを子プロセスで起動するときは `node` ではなく `process.execPath` を使う（volta の中継役だけが止まって、サーバーが残るため）
+- With Volta's pnpm, use `PATH=$HOME/.volta/bin:$PATH`. `useNodeVersion` makes scripts run on Node 24.
+- E2E drives the installed Google Chrome through `playwright-core` (no browser download).
+- Start child servers with `process.execPath`, not `node`: under Volta, killing `node` only stops the shim and leaves the server running.
 
-## スキル
+## Skills
 
-作業の内容に合わせて、対応するスキルを必ず使ってください。
+Always use the matching skill.
 
-| やること | スキル |
+| Task | Skill |
 |---|---|
-| コミット | `git-commit` |
-| ブランチ作成 | `git-branch` |
-| リモートとの同期・pull・push | `git-sync` |
+| Commit | `git-commit` |
+| Create a branch | `git-branch` |
+| Sync with the remote, pull, push | `git-sync` |
 
-スキルの中身は、Claude 用が `.claude/skills/`、Codex 用が `.agents/skills/` にあります（どちらも同じ内容）。
+Claude's copies live in `.claude/skills/`, Codex's in `.agents/skills/` (same content).
 
-コミットのルール（スキルの要点）：
+Commit rules (summary of the skill):
 
-- Conventional Commits（`feat:` `fix:` `refactor:` `docs:` `test:` `chore:` など）。説明は英語・小文字始まり・命令形・ピリオドなし
-- 1コミット = 1つの論理的な変更。種類のちがう変更は分ける
-- **`Co-Authored-By: Claude` や `Generated with Claude Code` などの自動生成フッターを付けない**
+- Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`, …). Lowercase, imperative, no trailing period.
+- One commit = one logical change. Keep different kinds of changes apart.
+- **No generated footers** such as `Co-Authored-By: Claude` or `Generated with Claude Code`.
 
-ブランチと同期のルール（スキルの要点）：
+Branch and sync rules (summary of the skills):
 
-- `main` には直接コミット・プッシュしない。変更は PR 経由でだけ入れる
-- 普段の作業は `dev` から切る（`feature/...`、`fix/...`、`refactor/...`、`chore/...`、`docs/...`、`test/...`）。緊急修正だけ `main` から `hotfix/...`
-- 取りこむときは `git pull --rebase`。`git push --force` は使わない
+- Never commit or push to `main` directly. Changes reach `main` through pull requests only.
+- Branch everyday work off `dev` (`feature/…`, `fix/…`, `refactor/…`, `chore/…`, `docs/…`, `test/…`). Only urgent fixes branch off `main` as `hotfix/…`.
+- Integrate with `git pull --rebase`. Never `git push --force`.

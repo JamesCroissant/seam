@@ -1,11 +1,11 @@
 # .claude
 
-Claude Code 用のフォルダです。プロジェクトの指示はルートの [CLAUDE.md](../CLAUDE.md)（中身は [AGENTS.md](../AGENTS.md)）にあります。
+Claude Code files. The project instructions are in [CLAUDE.md](../CLAUDE.md), which imports [AGENTS.md](../AGENTS.md).
 
-| フォルダ | 中身 |
+| Folder | Contents |
 |---|---|
-| `skills/git-commit/` | コミットメッセージとコミットの分け方 |
-| `skills/git-branch/` | ブランチの種類と名前の付け方 |
-| `skills/git-sync/` | リモートとの同期（pull / push）とコンフリクトの解決 |
+| `skills/git-commit/` | Commit messages and how to split commits |
+| `skills/git-branch/` | Branch types and naming |
+| `skills/git-sync/` | Syncing with the remote (pull / push) and resolving conflicts |
 
-中身は `.agents/skills/` と同じです。スキルは `/git-commit` のように呼び出せます。
+Same content as `.agents/skills/`. Invoke a skill with `/git-commit` and so on.

@@ -1,10 +1,10 @@
 # CLAUDE.md
 
-このプロジェクトの指示は AGENTS.md にまとめています（Codex と共通）。
+The project instructions live in AGENTS.md (shared with Codex).
 
 @AGENTS.md
 
-## Claude Code だけのこと
+## Claude Code only
 
-- スキルは `.claude/skills/` にあります（`/git-commit`、`/git-branch`、`/git-sync`）
-- コミットするときは、必ず `git-commit` スキルに従ってください。**コミットメッセージにも PR の説明にも、`Co-Authored-By: Claude` や `🤖 Generated with Claude Code` を付けません**（このプロジェクトでは、この指示が既定の付け方より優先されます）
+- Skills are in `.claude/skills/` (`/git-commit`, `/git-branch`, `/git-sync`).
+- Always follow the `git-commit` skill when committing. **Never add `Co-Authored-By: Claude` or `🤖 Generated with Claude Code` to commit messages or pull request descriptions.** In this project this overrides the default attribution.

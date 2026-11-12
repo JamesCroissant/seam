@@ -1,41 +1,41 @@
 ---
 name: git-commit
-description: Conventional Commits に基づくコミットメッセージとコミット戦略
+description: Commit messages and commit strategy based on Conventional Commits
 ---
 
-# Git コミットスキル
+# Git commit skill
 
-## 目的
-一貫性のある、読みやすいコミット履歴を維持する
+## Goal
+Keep a consistent, readable commit history.
 
-## コミットメッセージ形式
+## Message format
 
 ```
 <type>: <description>
 ```
 
-### type 一覧
+### Types
 
-| type | 用途 |
-|------|------|
-| `feat` | 新機能追加 |
-| `fix` | バグ修正 |
-| `refactor` | 挙動を変えないコード改善 |
-| `docs` | ドキュメントのみの変更 |
-| `test` | テストの追加・修正 |
-| `chore` | 設定変更、依存関係更新、ビルド周り |
-| `style` | フォーマット修正（コードの意味に影響しない変更） |
-| `perf` | パフォーマンス改善 |
+| type | Use for |
+|------|---------|
+| `feat` | A new feature |
+| `fix` | A bug fix |
+| `refactor` | Code changes that do not change behavior |
+| `docs` | Documentation only |
+| `test` | Adding or fixing tests |
+| `chore` | Configuration, dependencies, build setup |
+| `style` | Formatting that does not change meaning |
+| `perf` | Performance improvements |
 
-### description のルール
+### Description rules
 
-- **英語で書く**（自然で端的な表現）
-- **小文字で始める**（先頭を大文字にしない）
-- **命令形で書く**（add, fix, update, remove など）
-- **末尾にピリオドを付けない**
-- **絵文字は使わない**
+- **Write it in English**, naturally and concisely
+- **Start with a lowercase letter**
+- **Use the imperative mood** (add, fix, update, remove, …)
+- **No trailing period**
+- **No emoji**
 
-### 良い例 / 悪い例
+### Good and bad examples
 
 ```
 feat: add user authentication with JWT
@@ -44,39 +44,39 @@ refactor: extract validation logic into shared utility
 docs: update API endpoint documentation
 chore: upgrade Next.js to v15.1
 
-# NG
-feat: Add User Authentication.   ← 大文字、ピリオド
-🎉 feat: add login                ← 絵文字
-fix: fixed bug                    ← 過去形、曖昧
-update stuff                      ← type なし、内容不明
+# Bad
+feat: Add User Authentication.   ← capitalized, trailing period
+🎉 feat: add login                ← emoji
+fix: fixed bug                    ← past tense, vague
+update stuff                      ← no type, unclear
 ```
 
-## コミット単位のルール
+## What goes into one commit
 
-- **似た属性の変更をグループ化してコミットする**
-  - 機能追加とバグ修正を1つのコミットに混ぜない
-  - リファクタリングと新機能を分ける
-  - ドキュメント変更はドキュメントだけでまとめる
-- **1コミット = 1つの論理的変更**
-  - レビューしやすく、revert しやすい粒度を保つ
+- **Group changes of the same kind**
+  - Do not mix a feature and a bug fix in one commit
+  - Keep refactoring apart from new features
+  - Put documentation changes in their own commit
+- **One commit = one logical change**
+  - Keep commits small enough to review and revert
 
-### グループ化の例
+### Grouping example
 
 ```bash
-# 1つ目: リファクタリング
+# 1: refactoring
 git commit -m "refactor: extract email validation into shared helper"
 
-# 2つ目: そのヘルパーを使った新機能
+# 2: the feature that uses the helper
 git commit -m "feat: add email verification on signup"
 
-# 3つ目: 関連ドキュメント
+# 3: related documentation
 git commit -m "docs: add signup flow documentation"
 ```
 
-## 禁止事項
+## Never
 
-- 絵文字をコミットメッセージに含めない
-- 無関係な変更を1コミットにまとめない
-- 日本語でコミットメッセージを書かない
-- `fix: fix bug` のような意味のないメッセージを書かない
-- `🤖 Generated with Claude Code` や `Co-Authored-By: Claude` 等の自動生成フッターを付けない
+- Put emoji in commit messages
+- Bundle unrelated changes in one commit
+- Write commit messages in Japanese
+- Write meaningless messages such as `fix: fix bug`
+- Add generated footers such as `🤖 Generated with Claude Code` or `Co-Authored-By: Claude`

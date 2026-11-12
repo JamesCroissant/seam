@@ -1,57 +1,57 @@
 ---
 name: git-sync
-description: リモートとの同期、pull/push、コンフリクト解決
+description: Sync with the remote, pull/push, and resolve conflicts
 ---
 
-# Git Sync スキル
+# Git sync skill
 
-## 目的
-リモートリポジトリとの同期を安全かつ効率的に行う
+## Goal
+Sync with the remote repository safely and efficiently.
 
-## 実行手順
+## Steps
 
-### 1. 状態確認
+### 1. Check the state
 
 ```bash
-# ローカルの状態確認
+# Local state
 git status
 
-# リモートとの差分確認
+# Differences with the remote
 git fetch origin main
-git log --oneline HEAD..origin/main   # リモートにあってローカルにない
-git log --oneline origin/main..HEAD   # ローカルにあってリモートにない
+git log --oneline HEAD..origin/main   # on the remote, not local
+git log --oneline origin/main..HEAD   # local, not on the remote
 ```
 
-### 2. Pull（リモートの変更を取り込む）
+### 2. Pull (bring in remote changes)
 
 ```bash
-# rebase で取り込む（履歴がきれいになる）
+# Rebase keeps the history clean
 git pull --rebase origin main
 ```
 
-### 3. コンフリクト解決
+### 3. Resolve conflicts
 
-コンフリクトが発生した場合：
+When a conflict happens:
 
 ```bash
-# 状態確認
+# Check the state
 git status
 
-# ファイルを編集してコンフリクト解決後
+# After editing the files to resolve the conflict
 git add <resolved-file>
 git rebase --continue
 
-# または、リモート側を採用する場合
+# Or keep the remote side
 git checkout --theirs <file>
 git add <file>
 git rebase --continue
 
-# または、ローカル側を採用する場合
+# Or keep the local side
 git checkout --ours <file>
 git add <file>
 git rebase --continue
 
-# 削除されたファイルの場合
+# For a deleted file
 git rm <file>
 git rebase --continue
 ```
@@ -62,48 +62,48 @@ git rebase --continue
 git push origin main
 ```
 
-## トラブルシューティング
+## Troubleshooting
 
-### ロックファイルが残っている場合
+### A lock file is left behind
 
 ```bash
 rm -f .git/*.lock
 ```
 
-### ハングしているプロセスがある場合
+### A process is hanging
 
 ```bash
-# 確認
+# Check
 ps aux | grep -E 'git|credential' | grep -v grep
 
-# 停止
+# Stop
 pkill -f "git-remote-https"
 pkill -f "gh auth login"
 ```
 
-### credential helper が遅い場合
+### The credential helper is slow
 
 ```bash
-# 原因確認
+# Find the cause
 git config --show-origin --get-all credential.helper
 
-# osxkeychain が問題の場合、無効化
+# If osxkeychain is the problem, disable it
 git config --global credential.helper ""
 ```
 
-### ブランチが分岐している場合
+### The branches have diverged
 
 ```bash
-# 状態確認
+# Check
 git status
-# "Your branch and 'origin/main' have diverged" と表示される
+# shows "Your branch and 'origin/main' have diverged"
 
-# rebase で統合
+# Integrate with a rebase
 git pull --rebase origin main
 ```
 
-## 禁止事項
+## Never
 
-- `git push --force` は使用しない（履歴が破壊される）
-- コンフリクトを確認せずに `--theirs` や `--ours` を使わない
-- ロックファイルを確認せずに削除しない
+- Use `git push --force` (it destroys history)
+- Use `--theirs` or `--ours` without looking at the conflict
+- Delete lock files without checking them first
