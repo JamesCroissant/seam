@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, dev]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The job id is the required status check on main ("check"). Rename with care.
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.28.0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Unit and integration tests (vitest, against src/).
+      - run: pnpm test
+
+      # Builds packages/seam, then type-checks the source and the example against dist/.
+      - run: pnpm typecheck
+
+      # Production build of the example + Chrome (preinstalled on ubuntu-latest) with and without JS.
+      - run: pnpm e2e
