@@ -69,6 +69,8 @@ Node は 24.22.3 に固定しています（`package.json` の `volta`、`pnpm-w
 
 テストが失敗したら、出力をそのまま報告してください。通ったことにしないでください。
 
+GitHub Actions（`.github/workflows/ci.yml`）が、PR と `main` / `dev` への push で `pnpm test`、`pnpm typecheck`、`pnpm e2e` を動かします。`main` はこのチェック（`check`）が通らないとマージできません。
+
 ## 守ること
 
 - **やらないこと（docs/vision.md の6章）を足さない**：フレームワーク独自のデータキャッシュ、キャッシュを消すタグ、SPA ルーター、route の `action`、`'use server'` での読みこみ、など
