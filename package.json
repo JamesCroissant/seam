@@ -1,0 +1,36 @@
+{
+  "name": "seam-monorepo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit && pnpm build && tsc -p examples/invoices/tsconfig.json --noEmit",
+    "example:dev": "pnpm build && pnpm -C examples/invoices dev",
+    "example:build": "pnpm build && pnpm -C examples/invoices build",
+    "example:start": "pnpm -C examples/invoices start",
+    "e2e": "pnpm example:build && node scripts/e2e.mjs",
+    "build": "pnpm -C packages/seam build",
+    "test:create": "pnpm build && node scripts/create-check.mjs",
+    "test:adapters": "pnpm build && node scripts/adapters-check.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "playwright-core": "^1.65.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "vite": "^8.3.8",
+    "zod": "4.6.7",
+    "@vitejs/plugin-rsc": "0.5.38",
+    "react-server-dom-webpack": "19.3.1"
+  },
+  "engines": {
+    "node": ">=22.12"
+  },
+  "volta": {
+    "node": "24.22.3"
+  }
+}
