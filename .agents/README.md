@@ -4,6 +4,8 @@ Codex（OpenAI Codex CLI）用のフォルダです。プロジェクトの指�
 
 | フォルダ | 中身 |
 |---|---|
-| `skills/git-commit/` | コミットメッセージとコミットの分け方（`.claude/skills/git-commit/` と同じ内容） |
+| `skills/git-commit/` | コミットメッセージとコミットの分け方 |
+| `skills/git-branch/` | ブランチの種類と名前の付け方 |
+| `skills/git-sync/` | リモートとの同期（pull / push）とコンフリクトの解決 |
 
-スキルは `$git-commit` で呼び出せます。
+中身は `.claude/skills/` と同じです。スキルは `$git-commit` のように呼び出せます。

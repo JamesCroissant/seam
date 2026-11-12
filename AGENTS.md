@@ -90,12 +90,22 @@ Node は 24.22.3 に固定しています（`package.json` の `volta`、`pnpm-w
 
 作業の内容に合わせて、対応するスキルを必ず使ってください。
 
-| やること | スキル | 場所 |
-|---|---|---|
-| コミット | `git-commit` | `.claude/skills/git-commit/`（Claude）、`.agents/skills/git-commit/`（Codex） |
+| やること | スキル |
+|---|---|
+| コミット | `git-commit` |
+| ブランチ作成 | `git-branch` |
+| リモートとの同期・pull・push | `git-sync` |
+
+スキルの中身は、Claude 用が `.claude/skills/`、Codex 用が `.agents/skills/` にあります（どちらも同じ内容）。
 
 コミットのルール（スキルの要点）：
 
 - Conventional Commits（`feat:` `fix:` `refactor:` `docs:` `test:` `chore:` など）。説明は英語・小文字始まり・命令形・ピリオドなし
 - 1コミット = 1つの論理的な変更。種類のちがう変更は分ける
 - **`Co-Authored-By: Claude` や `Generated with Claude Code` などの自動生成フッターを付けない**
+
+ブランチと同期のルール（スキルの要点）：
+
+- `main` には直接コミット・プッシュしない。変更は PR 経由でだけ入れる
+- 普段の作業は `dev` から切る（`feature/...`、`fix/...`、`refactor/...`、`chore/...`、`docs/...`、`test/...`）。緊急修正だけ `main` から `hotfix/...`
+- 取りこむときは `git pull --rebase`。`git push --force` は使わない

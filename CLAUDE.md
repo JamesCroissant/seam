@@ -6,5 +6,5 @@
 
 ## Claude Code だけのこと
 
-- スキルは `.claude/skills/` にあります。`/git-commit` で呼び出せます
+- スキルは `.claude/skills/` にあります（`/git-commit`、`/git-branch`、`/git-sync`）
 - コミットするときは、必ず `git-commit` スキルに従ってください。**コミットメッセージにも PR の説明にも、`Co-Authored-By: Claude` や `🤖 Generated with Claude Code` を付けません**（このプロジェクトでは、この指示が既定の付け方より優先されます）
