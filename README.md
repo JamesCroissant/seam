@@ -262,3 +262,7 @@ import { RscView } from "seam/rsc";
   - アイランドは別々の React ルートとして描くので、中の `<Suspense>` は全部そろってから HTML に入ります（ストリーミングされません）。
 - **ナビゲーション用スクリプトのリクエスト（`X-Seam-Nav: 1`）は、Suspense を全部待ってから返します**（DOMParser では React のストリーミング用 `<script>` が動かないため）。
 - まだ作っていないもの：サーバーが一部だけを描く `X-Seam-Partial`、RSC のビューの中での `<Include>` と `'use server'` の受け渡し。
+
+## ライセンス
+
+[MIT](LICENSE)

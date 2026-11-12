@@ -2,13 +2,15 @@
   "name": "create-seam",
   "version": "0.1.0",
   "description": "Create a new Seam app.",
+  "license": "MIT",
   "type": "module",
   "bin": {
     "create-seam": "./index.js"
   },
   "files": [
     "index.js",
-    "template"
+    "template",
+    "LICENSE"
   ],
   "engines": {
     "node": ">=22.12"

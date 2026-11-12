@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "description": "Web-standard React framework: HTML first, JS only for islands.",
+  "license": "MIT",
   "exports": {
     ".": {
       "source": "./src/index.ts",
@@ -125,7 +126,8 @@
   "files": [
     "dist",
     "types.d.ts",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json && chmod +x dist/cli.js",
